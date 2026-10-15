@@ -35,19 +35,21 @@ bool reflect_vs(const void* code, SIZE_T size, Shader* out);
 struct Status {
     bool enabled = true;
     uint32_t ps_seen = 0, vs_seen = 0;
-    uint64_t ps_fixed = 0, vs_fixed = 0, full_viewport_fixed = 0;
+    uint64_t ps_fixed = 0, vs_fixed = 0, shrunk = 0, non_screen = 0;
 };
 Status& status();
 
 using DrawFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, UINT);
-// Render thread, from the Draw hook. Returns true if a scaled full-screen triangle must be redrawn with the engine's
-// unscaled UVs instead (the draw is skipped):
-//  - the bound VS scales the UVs itself (see above), or
-//  - the viewport covers the whole render target. The sub-rect invariant is "every buffer holds the current frame in
-//    its top-left (scale x scale) part"; a pass drawing its whole target (SVO GI's 1/6-res passes, 426x240 viewport on
-//    426x240 targets) must map UVs 1:1 to keep that layout, or the next pass reads it at the wrong scale (broken GI,
-//    darker image below 100%).
-bool skip_scaled_tri(ID3D11DeviceContext* ctx, const Shader* vs);
+// Render thread, from the Draw hook, for a full-screen triangle whose UVs we scaled. The sub-rect invariant is "every
+// screen buffer holds the current frame in its top-left (scale x scale) part":
+//  - the bound VS scales the UVs itself (see above): Redraw with the engine's unscaled triangle;
+//  - the viewport covers a whole screen-proportional target (SVO GI's 1/6-res passes, 426x240 on 426x240): Shrink
+//    the viewport to the sub-rect. Keeping 1:1 UVs there preserved the layout, but the WPOS camera rays then spread
+//    over the whole target while the depth covered the sub-rect: wrong world positions, GI "cloud" on near foliage;
+//  - the viewport covers a whole non-screen target (2:1 sky textures, LUTs): Redraw unscaled;
+//  - otherwise (the viewport already is the sub-rect): Draw as is.
+enum class TriAction { Draw, Redraw, Shrink };
+TriAction scaled_tri_action(ID3D11DeviceContext* ctx, const Shader* vs);
 // Render thread, from the Draw hook while a fixed PS is bound (vs: the bound VS's entry, or nullptr).
 void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT count, UINT start, DrawFn original);
 

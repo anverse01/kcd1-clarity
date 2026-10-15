@@ -6,11 +6,13 @@
 
 #include <MinHook.h>
 
+#include <cmath>
 #include <cstring>
 #include <mutex>
 #include <vector>
 
 #include "core/log.h"
+#include "game/renderer.h"
 #include "renderer/screen_size_fix.h"
 #include "renderer/taa_dlss.h"
 
@@ -208,8 +210,28 @@ static void STDMETHODCALLTYPE hk_draw(ID3D11DeviceContext* ctx, UINT count, UINT
             return;
         }
     }
-    if (!t_inside && screen_size_fix::skip_scaled_tri(ctx, g_bound_fix_vs))
-        return;
+    if (!t_inside) {
+        switch (screen_size_fix::scaled_tri_action(ctx, g_bound_fix_vs)) {
+        case screen_size_fix::TriAction::Redraw:
+            game::redo_fullscreen_tri_unscaled();
+            return;
+        case screen_size_fix::TriAction::Shrink: {
+            D3D11_VIEWPORT vp;
+            UINT n = 1;
+            ctx->RSGetViewports(&n, &vp);
+            game::Vec2 s = game::current_viewport_scale();
+            D3D11_VIEWPORT sub = vp;
+            sub.Width = floorf(vp.Width * s.x + 0.5f);
+            sub.Height = floorf(vp.Height * s.y + 0.5f);
+            ctx->RSSetViewports(1, &sub);
+            o_draw(ctx, count, start);
+            ctx->RSSetViewports(1, &vp);
+            return;
+        }
+        case screen_size_fix::TriAction::Draw:
+            break;
+        }
+    }
     if (g_bound_fix && !t_inside) {
         t_inside = true;
         screen_size_fix::draw(ctx, *g_bound_fix, g_bound_fix_vs, count, start, o_draw);

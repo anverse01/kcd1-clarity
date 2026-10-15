@@ -85,6 +85,11 @@ Vec2 current_downscale() {
     return r ? field<Vec2>(r, kDownscaleCur) : Vec2{1, 1};
 }
 
+Vec2 native_size() {
+    uintptr_t r = sym::addr(sym::Id::gRenDev);
+    return r ? Vec2{float(field<int>(r, kRenderWidth)), float(field<int>(r, kRenderHeight))} : Vec2{0, 0};
+}
+
 bool inside_scaled_fullscreen_tri() { return t_scaled_tri; }
 void redo_fullscreen_tri_unscaled() { t_redo = true; }
 

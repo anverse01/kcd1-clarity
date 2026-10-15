@@ -44,6 +44,8 @@ void set_downscale(float scale);
 Vec2 current_viewport_scale();
 // Downscale factor the scene of this frame renders with (+0xEF34), (1, 1) when not downscaled.
 Vec2 current_downscale();
+// Native render size (+0xEA90 / +0xEA94, unscaled).
+Vec2 native_size();
 // True while DrawFullScreenTri[WPOS] is drawing a triangle whose UVs we scaled (render thread).
 bool inside_scaled_fullscreen_tri();
 // From the Draw hook, inside such a triangle: the bound vertex shader scales the UVs itself (HPosScale), so the

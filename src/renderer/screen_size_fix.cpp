@@ -2,6 +2,7 @@
 
 #include <d3dcompiler.h>
 
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -175,18 +176,13 @@ struct Patch {
 
 static Patch g_ps_patch, g_vs_patch;
 
-// Viewport 0 covers the whole of render target 0 (or of the depth target when there is no colour target).
-static bool viewport_covers_target(ID3D11DeviceContext* ctx) {
-    D3D11_VIEWPORT vp;
-    UINT n = 1;
-    ctx->RSGetViewports(&n, &vp);
-    if (n == 0)
-        return false;
+// Size of render target 0 (or of the depth target when there is no colour target); false if none.
+static bool target_size(ID3D11DeviceContext* ctx, UINT* w, UINT* h) {
     ID3D11RenderTargetView* rtv = nullptr;
     ID3D11DepthStencilView* dsv = nullptr;
     ctx->OMGetRenderTargets(1, &rtv, &dsv);
     ID3D11View* view = rtv ? static_cast<ID3D11View*>(rtv) : static_cast<ID3D11View*>(dsv);
-    bool covers = false;
+    bool ok = false;
     if (view) {
         ID3D11Resource* res = nullptr;
         view->GetResource(&res);
@@ -195,8 +191,9 @@ static bool viewport_covers_target(ID3D11DeviceContext* ctx) {
         if (dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D) {
             D3D11_TEXTURE2D_DESC td;
             static_cast<ID3D11Texture2D*>(res)->GetDesc(&td);
-            covers = vp.TopLeftX == 0 && vp.TopLeftY == 0 && vp.Width >= float(td.Width) - 0.5f &&
-                     vp.Height >= float(td.Height) - 0.5f;
+            *w = td.Width;
+            *h = td.Height;
+            ok = true;
         }
         res->Release();
     }
@@ -204,20 +201,33 @@ static bool viewport_covers_target(ID3D11DeviceContext* ctx) {
         rtv->Release();
     if (dsv)
         dsv->Release();
-    return covers;
+    return ok;
 }
 
-bool skip_scaled_tri(ID3D11DeviceContext* ctx, const Shader* vs) {
+TriAction scaled_tri_action(ID3D11DeviceContext* ctx, const Shader* vs) {
     if (!g_status.enabled || !game::inside_scaled_fullscreen_tri())
-        return false;
-    if (vs)
+        return TriAction::Draw;
+    if (vs) {
         ++g_status.vs_fixed;
-    else if (viewport_covers_target(ctx))
-        ++g_status.full_viewport_fixed;
-    else
-        return false;
-    game::redo_fullscreen_tri_unscaled();
-    return true;
+        return TriAction::Redraw;
+    }
+    D3D11_VIEWPORT vp;
+    UINT n = 1, w = 0, h = 0;
+    ctx->RSGetViewports(&n, &vp);
+    if (n == 0 || !target_size(ctx, &w, &h))
+        return TriAction::Draw;
+    bool covers = vp.TopLeftX == 0 && vp.TopLeftY == 0 && vp.Width >= float(w) - 0.5f && vp.Height >= float(h) - 0.5f;
+    if (!covers)
+        return TriAction::Draw;
+    // Screen-proportional: same aspect as the native render size (426x240 vs 2560x1440).
+    game::Vec2 native = game::native_size();
+    float aspect = float(w) / float(h), screen = native.y > 0 ? native.x / native.y : 0;
+    if (screen > 0 && fabsf(aspect / screen - 1.0f) < 0.01f) {
+        ++g_status.shrunk;
+        return TriAction::Shrink;
+    }
+    ++g_status.non_screen;
+    return TriAction::Redraw;
 }
 
 void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT count, UINT start, DrawFn original) {
