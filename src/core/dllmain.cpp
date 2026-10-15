@@ -55,6 +55,7 @@ static DWORD WINAPI init_thread(LPVOID) {
     taa_dlss::settings().skip_ngx = config().skip_ngx;
     taa_dlss::settings().engine_after = config().engine_after;
     taa_dlss::settings().force_halton = config().force_halton;
+    taa_dlss::settings().state_swap = config().state_swap;
 
     if (MH_Initialize() != MH_OK) {
         logf("MH_Initialize failed");

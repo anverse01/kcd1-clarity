@@ -19,6 +19,7 @@ struct Config {
     bool skip_ngx = false;      // skip_ngx: run the DLSS path without NGX (works under RenderDoc)
     bool engine_after = false;  // engine_after: let the engine TAA draw run after ours
     bool force_halton = true;   // force_halton: r_AntialiasingTAAPattern 8 while DLSS is on
+    bool state_swap = false;    // state_swap: SwapDeviceContextState instead of a manual state backup
 };
 
 Config& config();

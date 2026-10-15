@@ -28,6 +28,7 @@ struct Settings {
     // Bisection switches for the black-screen bug:
     bool skip_ngx = false;      // do everything except NGX evaluate (write back the colour input)
     bool engine_after = false;  // run our whole path, then let the engine's TAA draw run anyway (overwrites ours)
+    bool state_swap = false;    // isolate with SwapDeviceContextState instead of a manual backup (breaks lighting)
 };
 
 struct Status {

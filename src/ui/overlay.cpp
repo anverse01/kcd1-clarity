@@ -346,6 +346,7 @@ static void draw_dlss_section() {
     bool bisect = ImGui::Checkbox("Skip NGX (no DLSS, works under RenderDoc)", &s.skip_ngx);
     ImGui::SameLine();
     bisect |= ImGui::Checkbox("Engine TAA draws after ours", &s.engine_after);
+    bisect |= ImGui::Checkbox("Old state swap (SwapDeviceContextState)", &s.state_swap);
     ImGui::SeparatorText("Conventions (to verify in game)");
     bool reset = false;
     reset |= ImGui::Checkbox("Flip jitter X", &s.jitter_flip_x);
@@ -370,6 +371,7 @@ static void draw_dlss_section() {
         config().skip_ngx = s.skip_ngx;
         config().engine_after = s.engine_after;
         config().force_halton = s.force_halton;
+        config().state_swap = s.state_swap;
         config_save();
     }
     ImGui::SetNextItemWidth(160);

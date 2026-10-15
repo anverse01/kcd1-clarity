@@ -6,9 +6,11 @@
 #include <d3dcompiler.h>
 
 #include <cstring>
+#include <optional>
 
 #include "core/log.h"
 #include "game/symbols.h"
+#include "renderer/state_backup.h"
 #include "upscaler/dlss.h"
 
 namespace kc::taa_dlss {
@@ -347,14 +349,30 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
         ctx->Unmap(g_view_params, 0);
     }
 
-    // Everything from here runs on our private pipeline state, NGX included, so the engine's bindings (and its
-    // cached view of them) are untouched.
+    // Everything from here, NGX included, must leave the engine's bindings (and its cached view of them) as they
+    // were. Default: save/restore by hand. SwapDeviceContextState (kept for comparison) also loses the NVAPI depth
+    // bounds state the engine's deferred lighting relies on, which blacks out lighting for good.
     ID3DDeviceContextState* game_state = nullptr;
-    ctx1->SwapDeviceContextState(g_state, &game_state);
+    std::optional<StateBackup> backup;
+    if (g_settings.state_swap) {
+        ctx1->SwapDeviceContextState(g_state, &game_state);
+    } else {
+        backup.emplace(ctx);
+        ctx->GSSetShader(nullptr, nullptr, 0);
+        ctx->HSSetShader(nullptr, nullptr, 0);
+        ctx->DSSetShader(nullptr, nullptr, 0);
+        ctx->IASetInputLayout(nullptr);
+        ctx->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+        ctx->OMSetDepthStencilState(nullptr, 0);
+        ctx->RSSetState(nullptr);
+    }
     auto restore = [&] {
-        ctx1->SwapDeviceContextState(game_state, nullptr);
-        if (game_state)
-            game_state->Release();
+        if (g_settings.state_swap) {
+            ctx1->SwapDeviceContextState(game_state, nullptr);
+            if (game_state)
+                game_state->Release();
+        }
+        backup.reset();
         ctx1->Release();
     };
 

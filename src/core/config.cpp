@@ -24,8 +24,9 @@ void config_load(const std::wstring& path) {
     g_config.skip_ngx = GetPrivateProfileIntW(L"debug", L"skip_ngx", g_config.skip_ngx, f) != 0;
     g_config.engine_after = GetPrivateProfileIntW(L"debug", L"engine_after", g_config.engine_after, f) != 0;
     g_config.force_halton = GetPrivateProfileIntW(L"debug", L"force_halton", g_config.force_halton, f) != 0;
-    logf("config: %ls: mode %d, skip_ngx %d, engine_after %d, force_halton %d", f, g_config.mode, g_config.skip_ngx,
-         g_config.engine_after, g_config.force_halton);
+    g_config.state_swap = GetPrivateProfileIntW(L"debug", L"state_swap", g_config.state_swap, f) != 0;
+    logf("config: %ls: mode %d, skip_ngx %d, engine_after %d, force_halton %d, state_swap %d", f, g_config.mode,
+         g_config.skip_ngx, g_config.engine_after, g_config.force_halton, g_config.state_swap);
     config_save();
 }
 
@@ -43,6 +44,7 @@ void config_save() {
     WritePrivateProfileStringW(L"debug", L"skip_ngx", g_config.skip_ngx ? L"1" : L"0", f);
     WritePrivateProfileStringW(L"debug", L"engine_after", g_config.engine_after ? L"1" : L"0", f);
     WritePrivateProfileStringW(L"debug", L"force_halton", g_config.force_halton ? L"1" : L"0", f);
+    WritePrivateProfileStringW(L"debug", L"state_swap", g_config.state_swap ? L"1" : L"0", f);
 }
 
 }  // namespace kc
