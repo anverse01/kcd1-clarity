@@ -224,7 +224,13 @@ static void STDMETHODCALLTYPE hk_draw(ID3D11DeviceContext* ctx, UINT count, UINT
             sub.Width = floorf(vp.Width * s.x + 0.5f);
             sub.Height = floorf(vp.Height * s.y + 0.5f);
             ctx->RSSetViewports(1, &sub);
-            o_draw(ctx, count, start);
+            if (g_bound_fix) {
+                t_inside = true;
+                screen_size_fix::draw(ctx, *g_bound_fix, g_bound_fix_vs, count, start, o_draw);
+                t_inside = false;
+            } else {
+                o_draw(ctx, count, start);
+            }
             ctx->RSSetViewports(1, &vp);
             return;
         }

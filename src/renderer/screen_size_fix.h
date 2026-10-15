@@ -20,8 +20,12 @@ namespace kc::screen_size_fix {
 // Auto exposure (HDRSampleLumInitial): runs with the per-pass scale reset to 1 (full 64x64 viewport) but reads the
 // quarter-res scene, whose current frame is only in the sub-rect; the rest is stale, so the measured luminance (and
 // the exposure) was wrong: the image got darker. Fix: its VS's g_VS_HPosScale.xy = the frame's downscale factor.
+// SVO GI cone trace: for far points it marches in screen space, projecting world points with g_mViewProj to a
+// full-screen UV (clip * 0.5 + 0.5) and reading the depth buffer there. Below scale 1 that reads outside the current
+// frame's sub-rect, the march reports occlusion and the pixel skips the cone trace: distant GI went ~3x darker. Fix:
+// bind a copy of its constant buffer whose g_mViewProj maps clip x/y into the sub-rect (done on the GPU).
 struct Shader {
-    enum Kind { FogPS, LumInitialPS, SelfScalingVS } kind = FogPS;
+    enum Kind { FogPS, LumInitialPS, ViewProjPS, SelfScalingVS } kind = FogPS;
     void* shader = nullptr;  // ID3D11PixelShader* / ID3D11VertexShader*, identity only
     UINT cb_slot = ~0u;      // constant buffer holding the value to replace
     UINT offset = 0;         // byte offset of it
