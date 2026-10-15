@@ -19,8 +19,8 @@ enum class Mode { Engine = 0, Dlss = 1 };
 struct Settings {
     Mode mode = Mode::Engine;
     bool force_halton = true;   // r_AntialiasingTAAPattern 8 (Halton 2,3 over 1024 frames) while DLSS is on
-    bool jitter_flip_x = false; // sign conventions, to be confirmed in game
-    bool jitter_flip_y = true;
+    bool jitter_flip_x = true;  // confirmed in game 2026-10-15: DLSS jitter = (-x, +y) of gRenDev+0xF20
+    bool jitter_flip_y = false;
     bool mv_flip_x = false;
     bool mv_flip_y = false;
     int depth_mode = 0;         // 0 = from r_ReverseDepth, 1 = normal, 2 = inverted
