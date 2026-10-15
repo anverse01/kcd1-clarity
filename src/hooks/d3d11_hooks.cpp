@@ -208,7 +208,7 @@ static void STDMETHODCALLTYPE hk_draw(ID3D11DeviceContext* ctx, UINT count, UINT
             return;
         }
     }
-    if (!t_inside && screen_size_fix::skip_for_vs(g_bound_fix_vs))
+    if (!t_inside && screen_size_fix::skip_scaled_tri(ctx, g_bound_fix_vs))
         return;
     if (g_bound_fix && !t_inside) {
         t_inside = true;

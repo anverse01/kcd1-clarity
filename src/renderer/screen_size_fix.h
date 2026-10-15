@@ -35,14 +35,19 @@ bool reflect_vs(const void* code, SIZE_T size, Shader* out);
 struct Status {
     bool enabled = true;
     uint32_t ps_seen = 0, vs_seen = 0;
-    uint64_t ps_fixed = 0, vs_fixed = 0;
+    uint64_t ps_fixed = 0, vs_fixed = 0, full_viewport_fixed = 0;
 };
 Status& status();
 
 using DrawFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, UINT);
-// Render thread, from the Draw hook. Returns true if the draw must be skipped (self-scaling VS on a scaled triangle,
-// which is then redrawn unscaled).
-bool skip_for_vs(const Shader* vs);
+// Render thread, from the Draw hook. Returns true if a scaled full-screen triangle must be redrawn with the engine's
+// unscaled UVs instead (the draw is skipped):
+//  - the bound VS scales the UVs itself (see above), or
+//  - the viewport covers the whole render target. The sub-rect invariant is "every buffer holds the current frame in
+//    its top-left (scale x scale) part"; a pass drawing its whole target (SVO GI's 1/6-res passes, 426x240 viewport on
+//    426x240 targets) must map UVs 1:1 to keep that layout, or the next pass reads it at the wrong scale (broken GI,
+//    darker image below 100%).
+bool skip_scaled_tri(ID3D11DeviceContext* ctx, const Shader* vs);
 // Render thread, from the Draw hook while a fixed PS is bound (vs: the bound VS's entry, or nullptr).
 void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT count, UINT start, DrawFn original);
 
