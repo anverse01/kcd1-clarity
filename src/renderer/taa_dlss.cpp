@@ -53,7 +53,10 @@ void main(uint2 id : SV_DispatchThreadID) {
     int3 p = int3(id, 0);
     float depth = InDepth.Load(p);
     float2 tc = (float2(id) + 0.5) * InvTarget;
-    float4 v = float4(tc, depth, 1.0);
+    // Sky / far plane: the reprojection's w goes to 0 there. The engine's TAA shrugs off the resulting Inf/NaN
+    // (treated as offscreen); DLSS spreads it through its history, so keep the depth off the exact limits and
+    // drop any non-finite or absurd vector.
+    float4 v = float4(tc, clamp(depth, 1e-6, 1.0 - 1e-6), 1.0);
     float4 h;
     if (RowMajor)
         h = v.x * E[ReprojReg] + v.y * E[ReprojReg + 1] + v.z * E[ReprojReg + 2] + v.w * E[ReprojReg + 3];
@@ -61,6 +64,8 @@ void main(uint2 id : SV_DispatchThreadID) {
         h = float4(dot(v, E[ReprojReg]), dot(v, E[ReprojReg + 1]), dot(v, E[ReprojReg + 2]), dot(v, E[ReprojReg + 3]));
     float2 obj = InVel.Load(p);
     float2 mv = (obj.x == 0.0) ? h.xy / h.w - tc : DecodeMotionVector(obj);
+    if (any(isnan(mv)) || any(isinf(mv)) || abs(h.w) < 1e-8 || any(abs(mv) > 2.0))
+        mv = 0.0;
     OutMv[id] = mv * MvSign;
     OutDepth[id] = depth;
     OutColour[id] = InColour.Load(p);

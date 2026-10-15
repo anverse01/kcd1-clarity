@@ -353,6 +353,8 @@ static void draw_dlss_section() {
     ImGui::TextDisabled("r_ReverseDepth = %d", st.reverse_depth);
     reset |= ImGui::Checkbox("MVs include jitter (MVJittered)", &dlss::settings().mv_jittered);
     reset |= ImGui::Checkbox("Force Halton jitter (pattern 8)", &s.force_halton);
+    if (ImGui::Button("Reset DLSS history"))
+        reset = true;
     if (reset)
         taa_dlss::request_reset();
     ImGui::SetNextItemWidth(160);
