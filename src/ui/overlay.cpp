@@ -417,6 +417,9 @@ static void draw_probe_section() {
     ImGui::SameLine();
     ImGui::SetNextItemWidth(160);
     ImGui::SliderFloat("##scale", &p.downscale, 0.33f, 1.0f, "%.3f");
+    ImGui::Checkbox("Fix full-screen UVs (DrawFullScreenTri hook)", &p.fix_fullscreen_uv);
+    ImGui::SameLine();
+    ImGui::TextDisabled("%llu draws fixed", (unsigned long long)game::fullscreen_uv_fixes());
     ImGui::Separator();
     ImGui::Text("r_AntialiasingMode %d (active %d), TAA pattern %d, frame index %u", s.aa_mode, s.aa_mode_active,
                 s.taa_pattern, s.frame_index);

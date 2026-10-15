@@ -1,5 +1,10 @@
 #include "game/renderer.h"
 
+#include <windows.h>
+
+#include <MinHook.h>
+
+#include <cmath>
 #include <cstring>
 
 #include "core/log.h"
@@ -20,6 +25,12 @@ constexpr uintptr_t kViewportHeight = 0xEF50;
 
 // IRenderer::SetViewportDownscale(float, float) returns Vec2 through a hidden pointer (CryEngine's Vec2 is not POD).
 using SetViewportDownscaleFn = Vec2*(__fastcall*)(void* self, Vec2* ret, float x, float y);
+
+// SD3DPostEffectsUtils::DrawFullScreenTri(int texWidth, int texHeight, float z, const RECT* srcRegion).
+// Without a region the UVs are 0..2 (full texture); with one they are 2*region/size.
+using DrawFullScreenTriFn = int64_t(__fastcall*)(int w, int h, float z, const RECT* src);
+static DrawFullScreenTriFn o_draw_fullscreen_tri;
+static uint64_t g_uv_fixes;
 
 static Probe g_probe;
 static Snapshot g_snap;
@@ -44,6 +55,33 @@ static T field(uintptr_t base, uintptr_t offset) {
     memcpy(&v, reinterpret_cast<const void*>(base + offset), sizeof(T));
     return v;
 }
+
+static int64_t __fastcall hk_draw_fullscreen_tri(int w, int h, float z, const RECT* src) {
+    uintptr_t r = sym::addr(sym::Id::gRenDev);
+    if (!src && g_probe.fix_fullscreen_uv && r && w > 0 && h > 0) {
+        Vec2 s = field<Vec2>(r, kViewportScale);
+        if ((s.x < 0.999f || s.y < 0.999f) && s.x > 0 && s.y > 0) {
+            RECT rc{0, 0, lroundf(w * s.x), lroundf(h * s.y)};
+            ++g_uv_fixes;
+            return o_draw_fullscreen_tri(w, h, z, &rc);
+        }
+    }
+    return o_draw_fullscreen_tri(w, h, z, src);
+}
+
+void install_hooks() {
+    void* target = reinterpret_cast<void*>(sym::addr(sym::Id::SD3DPostEffectsUtils__DrawFullScreenTri));
+    if (!target) {
+        logf("game: DrawFullScreenTri not resolved, no UV fix");
+        return;
+    }
+    MH_STATUS c = MH_CreateHook(target, reinterpret_cast<void*>(&hk_draw_fullscreen_tri),
+                                reinterpret_cast<void**>(&o_draw_fullscreen_tri));
+    MH_STATUS e = MH_EnableHook(target);
+    logf("game: DrawFullScreenTri hook %s, enable %s", MH_StatusToString(c), MH_StatusToString(e));
+}
+
+uint64_t fullscreen_uv_fixes() { return g_uv_fixes; }
 
 bool ready() { return sym::addr(sym::Id::gRenDev) != 0; }
 

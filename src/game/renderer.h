@@ -28,7 +28,13 @@ struct Probe {
     bool force_downscale = false;  // call SetViewportDownscale(scale, scale) every frame
     float downscale = 0.667f;
     int force_pattern = -1;        // -1 = leave CV_r_AntialiasingTAAPattern alone
+    bool fix_fullscreen_uv = true; // DrawFullScreenTri hook: scale UVs by the downscale factor
 };
+
+// Hooks into the engine (after sym::resolve_all). DrawFullScreenTri: when the scene renders into a downscaled
+// sub-rect, the full-screen triangle's UVs must cover only that sub-rect (kcd-re notes/20-resolution.md).
+void install_hooks();
+uint64_t fullscreen_uv_fixes();  // draws whose UVs were scaled, for the debug window
 
 bool ready();  // symbols needed for the snapshot are resolved
 Probe& probe();

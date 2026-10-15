@@ -18,6 +18,7 @@
 #include "core/log.h"
 #include "core/proxy.h"
 #include "core/state.h"
+#include "game/renderer.h"
 #include "game/symbols.h"
 #include "hooks/d3d11_hooks.h"
 #include "hooks/present.h"
@@ -68,6 +69,7 @@ static DWORD WINAPI init_thread(LPVOID) {
     logf("d3d11.dll loaded after %llu ms", GetTickCount64() - start);
 
     sym::resolve_all();
+    game::install_hooks();
     g_state.game_base = sym::status().module_base;
     g_state.game_timestamp = sym::status().module_timestamp;
 
