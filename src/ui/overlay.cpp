@@ -439,9 +439,10 @@ static void draw_probe_section() {
     const screen_size_fix::Status& fs = screen_size_fix::status();
     ImGui::Checkbox("Fix fog depth + self-scaling VS", &screen_size_fix::status().enabled);
     ImGui::SameLine();
-    ImGui::TextDisabled("fog/lum PS %u (%llu), VS %u (%llu), shrunk %llu, non-screen %llu", fs.ps_seen,
+    ImGui::TextDisabled("fog/lum PS %u (%llu), VS %u (%llu), shrunk %llu, non-screen %llu, bloom %llu", fs.ps_seen,
                         (unsigned long long)fs.ps_fixed, fs.vs_seen, (unsigned long long)fs.vs_fixed,
-                        (unsigned long long)fs.shrunk, (unsigned long long)fs.non_screen);
+                        (unsigned long long)fs.shrunk, (unsigned long long)fs.non_screen,
+                        (unsigned long long)fs.bloom_fixed);
     ImGui::SameLine();
     ImGui::TextDisabled("%llu draws fixed", (unsigned long long)game::fullscreen_uv_fixes());
     ImGui::Separator();

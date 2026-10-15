@@ -174,7 +174,23 @@ struct Patch {
     }
 };
 
-static Patch g_ps_patch, g_vs_patch;
+static Patch g_ps_patch, g_vs_patch, g_bloom_patch;
+
+// Texture the luminance pass read last (identity only): the quarter-res scene, also the bloom's source.
+static void* g_lum_source;
+
+static void* ps_resource(ID3D11DeviceContext* ctx, UINT slot) {
+    ID3D11ShaderResourceView* srv = nullptr;
+    ctx->PSGetShaderResources(slot, 1, &srv);
+    if (!srv)
+        return nullptr;
+    ID3D11Resource* res = nullptr;
+    srv->GetResource(&res);
+    srv->Release();
+    if (res)
+        res->Release();
+    return res;
+}
 
 // Size of render target 0 (or of the depth target when there is no colour target); false if none.
 static bool target_size(ID3D11DeviceContext* ctx, UINT* w, UINT* h) {
@@ -236,6 +252,7 @@ void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT cou
         return;
     }
     if (ps.kind == Shader::LumInitialPS) {
+        g_lum_source = ps_resource(ctx, 0);
         game::Vec2 d = game::current_downscale();
         ID3D11Buffer* cb = nullptr;
         if (vs && (d.x < 0.999f || d.y < 0.999f))
@@ -281,6 +298,28 @@ void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT cou
         cb->Release();
     if (zmap)
         zmap->Release();
+}
+
+bool draw_bloom_source(ID3D11DeviceContext* ctx, const Shader& vs, UINT count, UINT start, DrawFn original) {
+    if (!g_status.enabled || vs.kind != Shader::SelfScalingVS || !g_lum_source)
+        return false;
+    game::Vec2 d = game::current_downscale();
+    if (!(d.x < 0.999f || d.y < 0.999f) || ps_resource(ctx, 0) != g_lum_source)
+        return false;
+    ID3D11Buffer* cb = nullptr;
+    ctx->VSGetConstantBuffers(vs.cb_slot, 1, &cb);
+    ID3D11Buffer* b = cb ? g_bloom_patch.make(ctx, cb, vs.offset, d.x, d.y) : nullptr;
+    if (!b) {
+        if (cb)
+            cb->Release();
+        return false;
+    }
+    ctx->VSSetConstantBuffers(vs.cb_slot, 1, &b);
+    original(ctx, count, start);
+    ctx->VSSetConstantBuffers(vs.cb_slot, 1, &cb);
+    cb->Release();
+    ++g_status.bloom_fixed;
+    return true;
 }
 
 }  // namespace kc::screen_size_fix

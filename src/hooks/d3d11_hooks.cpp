@@ -232,6 +232,13 @@ static void STDMETHODCALLTYPE hk_draw(ID3D11DeviceContext* ctx, UINT count, UINT
             break;
         }
     }
+    if (!g_bound_fix && g_bound_fix_vs && !t_inside) {
+        t_inside = true;
+        bool drawn = screen_size_fix::draw_bloom_source(ctx, *g_bound_fix_vs, count, start, o_draw);
+        t_inside = false;
+        if (drawn)
+            return;
+    }
     if (g_bound_fix && !t_inside) {
         t_inside = true;
         screen_size_fix::draw(ctx, *g_bound_fix, g_bound_fix_vs, count, start, o_draw);

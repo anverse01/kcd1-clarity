@@ -35,7 +35,7 @@ bool reflect_vs(const void* code, SIZE_T size, Shader* out);
 struct Status {
     bool enabled = true;
     uint32_t ps_seen = 0, vs_seen = 0;
-    uint64_t ps_fixed = 0, vs_fixed = 0, shrunk = 0, non_screen = 0;
+    uint64_t ps_fixed = 0, vs_fixed = 0, shrunk = 0, non_screen = 0, bloom_fixed = 0;
 };
 Status& status();
 
@@ -52,5 +52,13 @@ enum class TriAction { Draw, Redraw, Shrink };
 TriAction scaled_tri_action(ID3D11DeviceContext* ctx, const Shader* vs);
 // Render thread, from the Draw hook while a fixed PS is bound (vs: the bound VS's entry, or nullptr).
 void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT count, UINT start, DrawFn original);
+
+// Bloom: the quarter-res scene (the luminance pass's source) holds the frame in its sub-rect, but the bloom blur
+// passes run with g_VS_HPosScale.xy = 1 and the tonemap reads the bloom with unscaled UVs (o1 = v1), so it showed the
+// sub-rect's bloom stretched 1/scale: a bright haze (the sunlit path's bloom) over the screen centre that shrank
+// towards the top left with the scale. Fix: the first blur pass (a self-scaling VS reading that texture at t0) gets
+// g_VS_HPosScale.xy = downscale, so it stretches the sub-rect over its whole target and the rest of the chain and the
+// tonemap see a full-layout bloom. Returns false (nothing drawn) for any other draw.
+bool draw_bloom_source(ID3D11DeviceContext* ctx, const Shader& vs, UINT count, UINT start, DrawFn original);
 
 }  // namespace kc::screen_size_fix
