@@ -153,6 +153,9 @@ bool ensure(ID3D11DeviceContext* ctx, UINT in_width, UINT in_height, UINT out_wi
     bool same = g_feature && !g_recreate && in_width == g_status.in_width && in_height == g_status.in_height &&
                 out_width == g_status.out_width && out_height == g_status.out_height &&
                 g_settings.auto_exposure == g_feature_settings.auto_exposure &&
+                g_settings.is_hdr == g_feature_settings.is_hdr &&
+                g_settings.depth_inverted == g_feature_settings.depth_inverted &&
+                g_settings.mv_jittered == g_feature_settings.mv_jittered &&
                 config().dlss_preset == g_feature_preset;
     if (same)
         return true;
@@ -179,10 +182,11 @@ bool ensure(ID3D11DeviceContext* ctx, UINT in_width, UINT in_height, UINT out_wi
     create.Feature.InTargetWidth = out_width;
     create.Feature.InTargetHeight = out_height;
     create.Feature.InPerfQualityValue = quality_for(in_width, out_width);
-    // Engine inputs (docs/taa.md): linear HDR colour, MVs at render res and jitter-free,
-    // reversed-Z depth.
-    create.InFeatureCreateFlags = NVSDK_NGX_DLSS_Feature_Flags_IsHDR | NVSDK_NGX_DLSS_Feature_Flags_MVLowRes |
-                                  NVSDK_NGX_DLSS_Feature_Flags_DepthInverted |
+    // MVs are at render resolution; the rest comes from settings (renderer/taa_dlss.cpp).
+    create.InFeatureCreateFlags = NVSDK_NGX_DLSS_Feature_Flags_MVLowRes |
+                                  (g_settings.is_hdr ? NVSDK_NGX_DLSS_Feature_Flags_IsHDR : 0) |
+                                  (g_settings.depth_inverted ? NVSDK_NGX_DLSS_Feature_Flags_DepthInverted : 0) |
+                                  (g_settings.mv_jittered ? NVSDK_NGX_DLSS_Feature_Flags_MVJittered : 0) |
                                   (g_settings.auto_exposure ? NVSDK_NGX_DLSS_Feature_Flags_AutoExposure : 0);
     NVSDK_NGX_Result r = NGX_D3D11_CREATE_DLSS_EXT(ctx, &g_feature, g_params, &create);
     g_status.create_result = r;

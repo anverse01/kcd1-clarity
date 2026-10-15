@@ -77,7 +77,9 @@ add_library(kcd_clarity SHARED
     src/core/dinput8.def
     src/game/renderer.cpp
     src/game/symbols.cpp
+    src/hooks/d3d11_hooks.cpp
     src/hooks/present.cpp
+    src/renderer/taa_dlss.cpp
     src/upscaler/dlss.cpp
     src/ui/input.cpp
     src/ui/overlay.cpp)

@@ -19,7 +19,9 @@
 #include "core/proxy.h"
 #include "core/state.h"
 #include "game/symbols.h"
+#include "hooks/d3d11_hooks.h"
 #include "hooks/present.h"
+#include "renderer/taa_dlss.h"
 
 namespace kc {
 
@@ -49,6 +51,7 @@ static DWORD WINAPI init_thread(LPVOID) {
     log_open(dir + L"kcd_clarity.log");
     logf("kcd-clarity %s, pid %lu", KC_VERSION, GetCurrentProcessId());
     config_load(dir + L"kcd_clarity.ini");
+    taa_dlss::settings().mode = static_cast<taa_dlss::Mode>(config().mode);
 
     if (MH_Initialize() != MH_OK) {
         logf("MH_Initialize failed");
@@ -65,6 +68,7 @@ static DWORD WINAPI init_thread(LPVOID) {
     g_state.game_timestamp = sym::status().module_timestamp;
 
     g_state.hooks_installed = install_present_hooks();
+    d3d11::install();  // before the game creates its shaders
     d3d_debug::install();  // before the game creates its device
     // Installed last: the game may raise and handle its own exceptions during startup.
     install_crash_logger();

@@ -30,6 +30,9 @@
 #include "core/state.h"
 #include "game/renderer.h"
 #include "game/symbols.h"
+#include "hooks/d3d11_hooks.h"
+#include "renderer/taa_dlss.h"
+#include "upscaler/dlss.h"
 #include "ui/input.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
@@ -300,6 +303,65 @@ static void draw_menu_window() {
     ImGui::End();
 }
 
+static void draw_dlss_section() {
+    taa_dlss::Settings& s = taa_dlss::settings();
+    const taa_dlss::Status& st = taa_dlss::status();
+    const dlss::Status& d = dlss::status();
+    const d3d11::Status& h = d3d11::status();
+    const game::Snapshot& snap = game::snapshot();
+
+    int mode = static_cast<int>(s.mode);
+    bool changed = ImGui::RadioButton("Engine TAA", &mode, 0);
+    ImGui::SameLine();
+    changed |= ImGui::RadioButton("DLAA", &mode, 1);
+    if (changed) {
+        s.mode = static_cast<taa_dlss::Mode>(mode);
+        config().mode = mode;
+        config_save();
+        taa_dlss::request_reset();
+    }
+    if (snap.valid && snap.aa_mode_active != 3)
+        ImGui::TextColored(kWarn, "Anti-aliasing is not SMAA 2TX (r_AntialiasingMode 3): the TAA pass does not run");
+
+    ImGui::Text("D3D11 hooks %s; TAA shaders seen %u; TAA draws %llu, replaced %llu", h.installed ? "ok" : "MISSING",
+                h.taa_shaders_seen, (unsigned long long)h.taa_draws, (unsigned long long)h.taa_replaced);
+    if (const d3d11::TaaShader* t = d3d11::last_taa_shader())
+        ImGui::TextDisabled("TAA PS: colour t%u depth t%u velocity t%u, mReprojection cb%u+%u %s", t->slot_colour,
+                            t->slot_depth, t->slot_velocity, t->cb_slot, t->reproj_offset,
+                            t->reproj_row_major ? "row-major" : "column-major");
+    ImGui::Text("NGX: %s, feature %s (0x%08x), last eval 0x%08x, %llu evaluations",
+                !d.init_tried ? "not initialised" : d.available ? "DLSS available" : "DLSS NOT available",
+                d.feature_created ? "created" : "none", d.create_result, d.last_eval_result,
+                (unsigned long long)d.evaluations);
+    if (st.last_ok)
+        ImGui::TextColored(kGood, "DLSS %ux%u -> %ux%u, jitter (%+.3f, %+.3f) px", st.render_width, st.render_height,
+                           st.target_width, st.target_height, st.jitter_x, st.jitter_y);
+    else if (*st.last_error)
+        ImGui::TextColored(kBad, "Fallback: %s", st.last_error);
+
+    ImGui::SeparatorText("Conventions (to verify in game)");
+    bool reset = false;
+    reset |= ImGui::Checkbox("Flip jitter X", &s.jitter_flip_x);
+    ImGui::SameLine();
+    reset |= ImGui::Checkbox("Flip jitter Y", &s.jitter_flip_y);
+    reset |= ImGui::Checkbox("Flip MV X", &s.mv_flip_x);
+    ImGui::SameLine();
+    reset |= ImGui::Checkbox("Flip MV Y", &s.mv_flip_y);
+    ImGui::SetNextItemWidth(200);
+    reset |= ImGui::Combo("Depth", &s.depth_mode, "auto (r_ReverseDepth)\0normal\0inverted\0");
+    ImGui::SameLine();
+    ImGui::TextDisabled("r_ReverseDepth = %d", st.reverse_depth);
+    reset |= ImGui::Checkbox("MVs include jitter (MVJittered)", &dlss::settings().mv_jittered);
+    reset |= ImGui::Checkbox("Force Halton jitter (pattern 8)", &s.force_halton);
+    if (reset)
+        taa_dlss::request_reset();
+    ImGui::SetNextItemWidth(160);
+    if (ImGui::SliderInt("DLSS preset (0 = default, 10-13 = J-M)", &config().dlss_preset, 0, 13)) {
+        config_save();
+        dlss::request_recreate();
+    }
+}
+
 static void draw_symbols_section() {
     const sym::Status& ss = sym::status();
     ImGui::Text("WHGame.dll 0x%llx, timestamp 0x%08x: %s", (unsigned long long)ss.module_base, ss.module_timestamp,
@@ -384,9 +446,11 @@ static void draw_debug_window(IDXGISwapChain* swapchain) {
                     g_frame_ms > 0 ? 1000.0f / g_frame_ms : 0.0f, g_frame_ms);
         ImGui::TextDisabled("D3D11 debug layer: [debug] d3d_debug=1 in kcd_clarity.ini (restart)");
     }
-    if (ImGui::CollapsingHeader("Engine symbols", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("DLSS", ImGuiTreeNodeFlags_DefaultOpen))
+        draw_dlss_section();
+    if (ImGui::CollapsingHeader("Engine symbols"))
         draw_symbols_section();
-    if (ImGui::CollapsingHeader("Renderer probe", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("Renderer probe"))
         draw_probe_section();
     if (ImGui::CollapsingHeader("Overlay input"))
         draw_input_section();

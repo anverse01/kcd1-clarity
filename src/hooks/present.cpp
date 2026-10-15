@@ -9,6 +9,7 @@
 
 #include "core/log.h"
 #include "game/renderer.h"
+#include "renderer/taa_dlss.h"
 #include "ui/overlay.h"
 
 namespace kc {
@@ -26,6 +27,7 @@ static ResizeBuffersFn o_resize_buffers;
 static HRESULT STDMETHODCALLTYPE hk_present(IDXGISwapChain* swapchain, UINT sync, UINT flags) {
     if (!(flags & DXGI_PRESENT_TEST)) {
         game::on_present();
+        taa_dlss::on_present();
         overlay::on_present(swapchain);
     }
     HRESULT hr = o_present(swapchain, sync, flags);

@@ -6,11 +6,12 @@
 // Thin wrapper over the NGX DLSS super-sampling feature on D3D11. Render thread only.
 namespace kc::dlss {
 
+// Feature creation flags. Changing any of them recreates the feature.
 struct Settings {
-    // Off (default): exposure 1.0 with pre-exposure 1. The colour DLSS gets is already pre-exposed by
-    // the engine's current-frame exposure and is exactly the tonemapper's input, so 1.0 is the
-    // right value. On: DLSS estimates exposure itself. Changing it recreates the feature.
-    bool auto_exposure = false;
+    bool auto_exposure = false;   // off: exposure texture 1.0
+    bool is_hdr = true;           // colour is linear (true) or display-referred LDR (false)
+    bool depth_inverted = false;  // 1 = near (reversed Z)
+    bool mv_jittered = false;     // motion vectors include the jitter difference
 };
 
 struct Status {
@@ -30,8 +31,8 @@ struct Status {
 };
 
 struct EvalInputs {
-    ID3D11Resource* colour = nullptr;  // linear HDR
-    ID3D11Resource* depth = nullptr;   // R32_FLOAT, reversed Z
+    ID3D11Resource* colour = nullptr;
+    ID3D11Resource* depth = nullptr;   // R32_FLOAT
     ID3D11Resource* motion = nullptr;  // R16G16_FLOAT, scaled to pixels by mv_scale
     ID3D11Resource* output = nullptr;  // UAV-capable
     UINT render_width = 0, render_height = 0;

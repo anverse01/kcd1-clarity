@@ -8,6 +8,7 @@ namespace kc {
 // kcd_clarity.ini next to the DLL. Missing keys get defaults; the file is written back on load
 // so every setting is visible to the user.
 struct Config {
+    int mode = 1;              // [general] mode: 0 = engine TAA, 1 = DLSS
     UINT toggle_key = VK_F8;   // [ui] toggle_key, virtual-key code: settings menu
     UINT debug_key = VK_F3;    // [ui] debug_key: debug window
     bool show_on_start = false;
