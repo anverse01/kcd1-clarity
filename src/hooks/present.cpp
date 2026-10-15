@@ -9,6 +9,7 @@
 
 #include "core/log.h"
 #include "game/renderer.h"
+#include "renderer/frame_dump.h"
 #include "renderer/taa_dlss.h"
 #include "ui/overlay.h"
 
@@ -26,6 +27,7 @@ static ResizeBuffersFn o_resize_buffers;
 
 static HRESULT STDMETHODCALLTYPE hk_present(IDXGISwapChain* swapchain, UINT sync, UINT flags) {
     if (!(flags & DXGI_PRESENT_TEST)) {
+        frame_dump::on_present(swapchain);  // before the overlay draws
         game::on_present();
         taa_dlss::on_present();
         overlay::on_present(swapchain);

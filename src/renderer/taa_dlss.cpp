@@ -11,6 +11,7 @@
 #include "core/log.h"
 #include "game/renderer.h"
 #include "game/symbols.h"
+#include "renderer/frame_dump.h"
 #include "renderer/state_backup.h"
 #include "upscaler/dlss.h"
 
@@ -479,6 +480,26 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
     }
 
     restore();
+
+    if (frame_dump::armed()) {
+        ID3D11Resource* rt = nullptr;
+        b.rtv->GetResource(&rt);
+        ID3D11Resource* col = nullptr;
+        b.colour->GetResource(&col);
+        frame_dump::save(ctx, col, "engine_colour");
+        frame_dump::save(ctx, g_colour.tex, "dlss_in_colour");
+        frame_dump::save(ctx, g_depth.tex, "dlss_in_depth");
+        frame_dump::save(ctx, g_mv.tex, "dlss_in_mv");
+        frame_dump::save(ctx, g_out.tex, "dlss_out");
+        frame_dump::save(ctx, rt, "taa_target");
+        logf("frame_dump: render %ux%u target %ux%u viewport (%.0f,%.0f %.0fx%.0f) jitter (%.3f, %.3f) ok %d",
+             render_w, render_h, td.Width, td.Height, b.viewport.TopLeftX, b.viewport.TopLeftY, b.viewport.Width,
+             b.viewport.Height, jx, jy, ok);
+        if (rt)
+            rt->Release();
+        if (col)
+            col->Release();
+    }
 
     g_status.render_width = render_w;
     g_status.render_height = render_h;

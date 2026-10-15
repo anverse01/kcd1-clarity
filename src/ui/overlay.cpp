@@ -31,6 +31,7 @@
 #include "game/renderer.h"
 #include "game/symbols.h"
 #include "hooks/d3d11_hooks.h"
+#include "renderer/frame_dump.h"
 #include "renderer/screen_size_fix.h"
 #include "renderer/taa_dlss.h"
 #include "upscaler/dlss.h"
@@ -375,6 +376,13 @@ static void draw_dlss_section() {
     bisect |= halton;
     if (ImGui::Button("Reset DLSS history"))
         reset = true;
+    ImGui::SameLine();
+    if (ImGui::Button("Dump frame (BMP)"))
+        frame_dump::request();
+    if (!frame_dump::last_result().empty()) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s", frame_dump::last_result().c_str());
+    }
     if (reset)
         taa_dlss::request_reset();
     if (bisect) {
