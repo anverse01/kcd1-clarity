@@ -17,7 +17,7 @@ namespace kc::taa_dlss {
 enum class Mode { Engine = 0, Dlss = 1 };
 
 struct Settings {
-    Mode mode = Mode::Dlss;
+    Mode mode = Mode::Engine;
     bool force_halton = true;   // r_AntialiasingTAAPattern 8 (Halton 2,3 over 1024 frames) while DLSS is on
     bool jitter_flip_x = false; // sign conventions, to be confirmed in game
     bool jitter_flip_y = true;
@@ -25,6 +25,9 @@ struct Settings {
     bool mv_flip_y = false;
     int depth_mode = 0;         // 0 = from r_ReverseDepth, 1 = normal, 2 = inverted
     int debug_view = 0;         // 0 = DLSS (NaN magenta), 1 = colour input, 2 = motion vectors, 3 = depth
+    // Bisection switches for the black-screen bug:
+    bool skip_ngx = false;      // do everything except NGX evaluate (write back the colour input)
+    bool engine_after = false;  // run our whole path, then let the engine's TAA draw run anyway (overwrites ours)
 };
 
 struct Status {

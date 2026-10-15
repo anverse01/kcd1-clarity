@@ -8,13 +8,17 @@ namespace kc {
 // kcd_clarity.ini next to the DLL. Missing keys get defaults; the file is written back on load
 // so every setting is visible to the user.
 struct Config {
-    int mode = 1;              // [general] mode: 0 = engine TAA, 1 = DLSS
+    int mode = 0;              // [general] mode: 0 = engine TAA, 1 = DLSS
     UINT toggle_key = VK_F8;   // [ui] toggle_key, virtual-key code: settings menu
     UINT debug_key = VK_F3;    // [ui] debug_key: debug window
     bool show_on_start = false;
     bool show_fps = false;     // small FPS readout while the overlay is closed
     int dlss_preset = 0;       // [dlss] preset: NGX render preset, 0 = DLSS default, 10-13 = J-M
     bool d3d_debug = false;    // [debug] d3d_debug: D3D11 debug layer, messages to the mod log (slow)
+    // [debug] black-screen bisection, also in the F3 window
+    bool skip_ngx = false;      // skip_ngx: run the DLSS path without NGX (works under RenderDoc)
+    bool engine_after = false;  // engine_after: let the engine TAA draw run after ours
+    bool force_halton = true;   // force_halton: r_AntialiasingTAAPattern 8 while DLSS is on
 };
 
 Config& config();

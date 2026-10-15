@@ -52,6 +52,9 @@ static DWORD WINAPI init_thread(LPVOID) {
     logf("kcd-clarity %s, pid %lu", KC_VERSION, GetCurrentProcessId());
     config_load(dir + L"kcd_clarity.ini");
     taa_dlss::settings().mode = static_cast<taa_dlss::Mode>(config().mode);
+    taa_dlss::settings().skip_ngx = config().skip_ngx;
+    taa_dlss::settings().engine_after = config().engine_after;
+    taa_dlss::settings().force_halton = config().force_halton;
 
     if (MH_Initialize() != MH_OK) {
         logf("MH_Initialize failed");

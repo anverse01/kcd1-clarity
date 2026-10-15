@@ -342,6 +342,10 @@ static void draw_dlss_section() {
     ImGui::SetNextItemWidth(260);
     ImGui::Combo("Debug view", &s.debug_view,
                  "DLSS output (NaN = magenta)\0Colour input\0Motion vectors (x red, y green, NaN magenta)\0Depth\0");
+    ImGui::SeparatorText("Black-screen bisection (reload the save after each test)");
+    bool bisect = ImGui::Checkbox("Skip NGX (no DLSS, works under RenderDoc)", &s.skip_ngx);
+    ImGui::SameLine();
+    bisect |= ImGui::Checkbox("Engine TAA draws after ours", &s.engine_after);
     ImGui::SeparatorText("Conventions (to verify in game)");
     bool reset = false;
     reset |= ImGui::Checkbox("Flip jitter X", &s.jitter_flip_x);
@@ -355,11 +359,19 @@ static void draw_dlss_section() {
     ImGui::SameLine();
     ImGui::TextDisabled("r_ReverseDepth = %d", st.reverse_depth);
     reset |= ImGui::Checkbox("MVs include jitter (MVJittered)", &dlss::settings().mv_jittered);
-    reset |= ImGui::Checkbox("Force Halton jitter (pattern 8)", &s.force_halton);
+    bool halton = ImGui::Checkbox("Force Halton jitter (pattern 8)", &s.force_halton);
+    reset |= halton;
+    bisect |= halton;
     if (ImGui::Button("Reset DLSS history"))
         reset = true;
     if (reset)
         taa_dlss::request_reset();
+    if (bisect) {
+        config().skip_ngx = s.skip_ngx;
+        config().engine_after = s.engine_after;
+        config().force_halton = s.force_halton;
+        config_save();
+    }
     ImGui::SetNextItemWidth(160);
     if (ImGui::SliderInt("DLSS preset (0 = default, 10-13 = J-M)", &config().dlss_preset, 0, 13)) {
         config_save();

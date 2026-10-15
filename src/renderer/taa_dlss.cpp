@@ -219,9 +219,23 @@ static bool ensure_textures(ID3D11Device* device, UINT w, UINT h) {
 // ---------------------------------------------------------------------------------------------------------
 
 void on_present() {
-    if (g_settings.mode == Mode::Dlss && g_settings.force_halton)
-        if (int* p = sym::ptr<int>(sym::Id::CV_r_AntialiasingTAAPattern))
-            *p = 8;
+    // Put the user's pattern back when we stop forcing, so turning DLSS off really returns to stock.
+    static int saved_pattern = -1;
+    int* p = sym::ptr<int>(sym::Id::CV_r_AntialiasingTAAPattern);
+    if (!p)
+        return;
+    bool force = g_settings.mode == Mode::Dlss && g_settings.force_halton;
+    if (force) {
+        if (saved_pattern < 0 && *p != 8) {
+            saved_pattern = *p;
+            logf("taa_dlss: r_AntialiasingTAAPattern %d -> 8", saved_pattern);
+        }
+        *p = 8;
+    } else if (saved_pattern >= 0) {
+        *p = saved_pattern;
+        logf("taa_dlss: r_AntialiasingTAAPattern restored to %d", saved_pattern);
+        saved_pattern = -1;
+    }
 }
 
 // Engine bindings at the TAA draw, AddRef'd by the Get calls.
@@ -327,7 +341,8 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
     memcpy(m.pData, &params, sizeof(params));
     ctx->Unmap(g_params, 0);
     if (SUCCEEDED(ctx->Map(g_view_params, 0, D3D11_MAP_WRITE_DISCARD, 0, &m))) {
-        struct { UINT mode; float mv_gain; float pad[2]; } view = {static_cast<UINT>(g_settings.debug_view), 50.0f, {}};
+        UINT view_mode = g_settings.skip_ngx && g_settings.debug_view == 0 ? 1u : static_cast<UINT>(g_settings.debug_view);
+        struct { UINT mode; float mv_gain; float pad[2]; } view = {view_mode, 50.0f, {}};
         memcpy(m.pData, &view, sizeof(view));
         ctx->Unmap(g_view_params, 0);
     }
@@ -344,7 +359,7 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
     };
 
     bool recreated = false;
-    if (!dlss::ensure(ctx, render_w, render_h, td.Width, td.Height, &recreated)) {
+    if (!g_settings.skip_ngx && !dlss::ensure(ctx, render_w, render_h, td.Width, td.Height, &recreated)) {
         restore();
         return fail("DLSS not available (see log)");
     }
@@ -378,7 +393,7 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
     in.mv_scale_x = static_cast<float>(td.Width);  // MVs are in texture UV units
     in.mv_scale_y = static_cast<float>(td.Height);
     in.reset = g_reset || recreated;
-    bool ok = dlss::evaluate(ctx, in);
+    bool ok = g_settings.skip_ngx ? true : dlss::evaluate(ctx, in);
     g_reset = false;
 
     // 3. Into the engine's TAA output, encoded like PostAA_PS.
@@ -411,7 +426,7 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
         return fail("DLSS evaluate failed");
     g_status.last_ok = true;
     g_status.last_error = "";
-    return true;
+    return !g_settings.engine_after;
 }
 
 }  // namespace kc::taa_dlss
