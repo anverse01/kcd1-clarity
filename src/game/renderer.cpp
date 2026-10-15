@@ -52,11 +52,15 @@ void on_present() {
     if (!r)
         return;
 
-    if (g_probe.force_downscale) {
+    // The request is sticky in the engine, so turning the probe off has to ask for (1, 1) once.
+    static bool was_forcing;
+    if (g_probe.force_downscale || was_forcing) {
         if (auto fn = reinterpret_cast<SetViewportDownscaleFn>(sym::addr(sym::Id::CD3D9Renderer__SetViewportDownscale))) {
+            float f = g_probe.force_downscale ? g_probe.downscale : 1.0f;
             Vec2 got;
-            fn(reinterpret_cast<void*>(r), &got, g_probe.downscale, g_probe.downscale);
+            fn(reinterpret_cast<void*>(r), &got, f, f);
         }
+        was_forcing = g_probe.force_downscale;
     }
     if (g_probe.force_pattern >= 0)
         if (int* p = sym::ptr<int>(sym::Id::CV_r_AntialiasingTAAPattern))
