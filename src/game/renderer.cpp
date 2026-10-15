@@ -26,10 +26,10 @@ constexpr uintptr_t kViewportHeight = 0xEF50;
 // IRenderer::SetViewportDownscale(float, float) returns Vec2 through a hidden pointer (CryEngine's Vec2 is not POD).
 using SetViewportDownscaleFn = Vec2*(__fastcall*)(void* self, Vec2* ret, float x, float y);
 
-// SD3DPostEffectsUtils::DrawFullScreenTri(int texWidth, int texHeight, float z, const RECT* srcRegion).
-// Without a region the UVs are 0..2 (full texture); with one they are 2*region/size.
+// SD3DPostEffectsUtils::DrawFullScreenTri / DrawFullScreenTriWPOS(int texWidth, int texHeight, float z,
+// const RECT* srcRegion). Without a region the UVs are 0..2 (full texture); with one they are 2*region/size.
 using DrawFullScreenTriFn = int64_t(__fastcall*)(int w, int h, float z, const RECT* src);
-static DrawFullScreenTriFn o_draw_fullscreen_tri;
+static DrawFullScreenTriFn o_draw_fullscreen_tri, o_draw_fullscreen_tri_wpos;
 static uint64_t g_uv_fixes;
 
 static Probe g_probe;
@@ -56,29 +56,45 @@ static T field(uintptr_t base, uintptr_t offset) {
     return v;
 }
 
-static int64_t __fastcall hk_draw_fullscreen_tri(int w, int h, float z, const RECT* src) {
+// The region that makes the UVs cover the downscaled sub-rect, or nullptr when no fix is needed.
+static const RECT* scaled_region(int w, int h, const RECT* src, RECT* out) {
     uintptr_t r = sym::addr(sym::Id::gRenDev);
-    if (!src && g_probe.fix_fullscreen_uv && r && w > 0 && h > 0) {
-        Vec2 s = field<Vec2>(r, kViewportScale);
-        if ((s.x < 0.999f || s.y < 0.999f) && s.x > 0 && s.y > 0) {
-            RECT rc{0, 0, lroundf(w * s.x), lroundf(h * s.y)};
-            ++g_uv_fixes;
-            return o_draw_fullscreen_tri(w, h, z, &rc);
-        }
+    if (src || !g_probe.fix_fullscreen_uv || !r || w <= 0 || h <= 0)
+        return src;
+    Vec2 s = field<Vec2>(r, kViewportScale);
+    if (!(s.x < 0.999f || s.y < 0.999f) || s.x <= 0 || s.y <= 0)
+        return src;
+    *out = RECT{0, 0, lroundf(w * s.x), lroundf(h * s.y)};
+    ++g_uv_fixes;
+    return out;
+}
+
+static int64_t __fastcall hk_draw_fullscreen_tri(int w, int h, float z, const RECT* src) {
+    RECT rc;
+    return o_draw_fullscreen_tri(w, h, z, scaled_region(w, h, src, &rc));
+}
+
+static int64_t __fastcall hk_draw_fullscreen_tri_wpos(int w, int h, float z, const RECT* src) {
+    RECT rc;
+    return o_draw_fullscreen_tri_wpos(w, h, z, scaled_region(w, h, src, &rc));
+}
+
+static void hook(sym::Id id, const char* name, void* detour, void** original) {
+    void* target = reinterpret_cast<void*>(sym::addr(id));
+    if (!target) {
+        logf("game: %s not resolved, not hooked", name);
+        return;
     }
-    return o_draw_fullscreen_tri(w, h, z, src);
+    MH_STATUS c = MH_CreateHook(target, detour, original);
+    MH_STATUS e = MH_EnableHook(target);
+    logf("game: %s hook %s, enable %s", name, MH_StatusToString(c), MH_StatusToString(e));
 }
 
 void install_hooks() {
-    void* target = reinterpret_cast<void*>(sym::addr(sym::Id::SD3DPostEffectsUtils__DrawFullScreenTri));
-    if (!target) {
-        logf("game: DrawFullScreenTri not resolved, no UV fix");
-        return;
-    }
-    MH_STATUS c = MH_CreateHook(target, reinterpret_cast<void*>(&hk_draw_fullscreen_tri),
-                                reinterpret_cast<void**>(&o_draw_fullscreen_tri));
-    MH_STATUS e = MH_EnableHook(target);
-    logf("game: DrawFullScreenTri hook %s, enable %s", MH_StatusToString(c), MH_StatusToString(e));
+    hook(sym::Id::SD3DPostEffectsUtils__DrawFullScreenTri, "DrawFullScreenTri",
+         reinterpret_cast<void*>(&hk_draw_fullscreen_tri), reinterpret_cast<void**>(&o_draw_fullscreen_tri));
+    hook(sym::Id::SD3DPostEffectsUtils__DrawFullScreenTriWPOS, "DrawFullScreenTriWPOS",
+         reinterpret_cast<void*>(&hk_draw_fullscreen_tri_wpos), reinterpret_cast<void**>(&o_draw_fullscreen_tri_wpos));
 }
 
 uint64_t fullscreen_uv_fixes() { return g_uv_fixes; }
