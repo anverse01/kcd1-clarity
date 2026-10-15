@@ -67,7 +67,7 @@ void main(uint2 id : SV_DispatchThreadID) {
     if (any(isnan(mv)) || any(isinf(mv)) || abs(h.w) < 1e-8 || any(abs(mv) > 2.0))
         mv = 0.0;
     OutMv[id] = mv * MvSign;
-    OutDepth[id] = depth;
+    OutDepth[id] = clamp(depth, 1e-6, 1.0 - 1e-6);  // reversed Z: the sky is exactly 0
     OutColour[id] = InColour.Load(p);
 }
 )";
@@ -80,10 +80,31 @@ float4 main(uint id : SV_VertexID) : SV_Position {
 }
 )";
 static const char kWritebackPS[] = R"(
-Texture2D<float4> Src : register(t0);
+Texture2D<float4> Src    : register(t0);  // DLSS output
+Texture2D<float4> Colour : register(t1);  // DLSS colour input
+Texture2D<float2> Mv     : register(t2);
+Texture2D<float>  Depth  : register(t3);
+cbuffer View : register(b0) { uint Mode; float MvGain; float2 Pad; };
+bool bad(float4 v) { return any(isnan(v)) || any(isinf(v)); }
 float4 main(float4 pos : SV_Position) : SV_Target {
-    float3 c = Src.Load(int3(pos.xy, 0)).rgb;
-    c = (c < 0.0031308) ? 12.92 * c : 1.055 * pow(abs(c), 1.0 / 2.4) - 0.055;
+    int3 p = int3(pos.xy, 0);
+    float3 c;
+    if (Mode == 1) {            // colour input
+        c = Colour.Load(p).rgb;
+    } else if (Mode == 2) {     // motion vectors: x red, y green (signed, gained), NaN magenta
+        float2 m = Mv.Load(p);
+        if (bad(m.xyxy)) return float4(1, 0, 1, 0);
+        c = float3(saturate(0.5 + m * MvGain), 0.0);
+        c = c * c;              // undo the sRGB encode below so mid grey stays 0.5
+    } else if (Mode == 3) {     // depth
+        c = Depth.Load(p).xxx;
+    } else {                    // DLSS output, NaN/Inf magenta
+        float4 o = Src.Load(p);
+        if (bad(o)) return float4(1, 0, 1, 0);
+        c = o.rgb;
+    }
+    c = saturate(c);
+    c = (c < 0.0031308) ? 12.92 * c : 1.055 * pow(c, 1.0 / 2.4) - 0.055;
     return float4(c, 0.0);
 }
 )";
@@ -92,6 +113,7 @@ static ID3D11ComputeShader* g_prepare_cs;
 static ID3D11VertexShader* g_writeback_vs;
 static ID3D11PixelShader* g_writeback_ps;
 static ID3D11Buffer* g_params;
+static ID3D11Buffer* g_view_params;
 static ID3DDeviceContextState* g_state;  // our private pipeline state (SwapDeviceContextState)
 static bool g_shaders_failed;
 
@@ -129,6 +151,8 @@ static bool ensure_shaders(ID3D11Device* device) {
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     ok = ok && SUCCEEDED(device->CreateBuffer(&bd, nullptr, &g_params));
+    bd.ByteWidth = 16;
+    ok = ok && SUCCEEDED(device->CreateBuffer(&bd, nullptr, &g_view_params));
 
     ID3D11Device1* device1 = nullptr;
     if (ok && SUCCEEDED(device->QueryInterface(__uuidof(ID3D11Device1), reinterpret_cast<void**>(&device1)))) {
@@ -302,6 +326,11 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
                 {g_settings.mv_flip_x ? -1.0f : 1.0f, g_settings.mv_flip_y ? -1.0f : 1.0f}};
     memcpy(m.pData, &params, sizeof(params));
     ctx->Unmap(g_params, 0);
+    if (SUCCEEDED(ctx->Map(g_view_params, 0, D3D11_MAP_WRITE_DISCARD, 0, &m))) {
+        struct { UINT mode; float mv_gain; float pad[2]; } view = {static_cast<UINT>(g_settings.debug_view), 50.0f, {}};
+        memcpy(m.pData, &view, sizeof(view));
+        ctx->Unmap(g_view_params, 0);
+    }
 
     // Everything from here runs on our private pipeline state, NGX included, so the engine's bindings (and its
     // cached view of them) are untouched.
@@ -353,17 +382,21 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
     g_reset = false;
 
     // 3. Into the engine's TAA output, encoded like PostAA_PS.
-    if (ok) {
+    if (ok || g_settings.debug_view != 0) {
         ctx->OMSetRenderTargets(1, &b.rtv, nullptr);
         ctx->RSSetViewports(1, &b.viewport);
         ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         ctx->VSSetShader(g_writeback_vs, nullptr, 0);
         ctx->PSSetShader(g_writeback_ps, nullptr, 0);
-        ctx->PSSetShaderResources(0, 1, &g_out.srv);
+        ID3D11ShaderResourceView* views[4] = {g_out.srv, g_colour.srv, g_mv.srv, g_depth.srv};
+        ctx->PSSetShaderResources(0, 4, views);
+        ctx->PSSetConstantBuffers(0, 1, &g_view_params);
         ctx->Draw(3, 0);
-        ID3D11ShaderResourceView* null_srv = nullptr;
+        ID3D11ShaderResourceView* null_srvs4[4] = {};
+        ID3D11Buffer* null_cb = nullptr;
         ID3D11RenderTargetView* null_rtv = nullptr;
-        ctx->PSSetShaderResources(0, 1, &null_srv);
+        ctx->PSSetShaderResources(0, 4, null_srvs4);
+        ctx->PSSetConstantBuffers(0, 1, &null_cb);
         ctx->OMSetRenderTargets(1, &null_rtv, nullptr);
     }
 

@@ -24,6 +24,7 @@ struct Settings {
     bool mv_flip_x = false;
     bool mv_flip_y = false;
     int depth_mode = 0;         // 0 = from r_ReverseDepth, 1 = normal, 2 = inverted
+    int debug_view = 0;         // 0 = DLSS (NaN magenta), 1 = colour input, 2 = motion vectors, 3 = depth
 };
 
 struct Status {

@@ -339,6 +339,9 @@ static void draw_dlss_section() {
     else if (*st.last_error)
         ImGui::TextColored(kBad, "Fallback: %s", st.last_error);
 
+    ImGui::SetNextItemWidth(260);
+    ImGui::Combo("Debug view", &s.debug_view,
+                 "DLSS output (NaN = magenta)\0Colour input\0Motion vectors (x red, y green, NaN magenta)\0Depth\0");
     ImGui::SeparatorText("Conventions (to verify in game)");
     bool reset = false;
     reset |= ImGui::Checkbox("Flip jitter X", &s.jitter_flip_x);
