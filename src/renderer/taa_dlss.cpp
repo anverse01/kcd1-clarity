@@ -232,8 +232,37 @@ static float wanted_scale() {
     return g_settings.render_scale;
 }
 
+// Holds an int cvar at a value while `on` and puts the user's value back afterwards.
+struct CvarOverride {
+    sym::Id id;
+    const char* name;
+    int saved = -1;
+    bool active = false;
+    void apply(bool on, int value) {
+        int* p = sym::ptr<int>(id);
+        if (!p)
+            return;
+        if (on) {
+            if (!active) {
+                saved = *p;
+                active = true;
+                logf("taa_dlss: %s %d -> %d", name, saved, value);
+            }
+            *p = value;
+        } else if (active) {
+            *p = saved;
+            active = false;
+            logf("taa_dlss: %s restored to %d", name, saved);
+        }
+    }
+};
+
 void on_present() {
-    game::set_downscale(wanted_scale());
+    float scale = wanted_scale();
+    game::set_downscale(scale);
+    // PackVelocitiesPS mixes scaled and full-screen UVs in the sub-rect path (zoom blur), kcd-re notes/20-resolution.md.
+    static CvarOverride motion_blur{sym::Id::CV_r_MotionBlur, "r_MotionBlur"};
+    motion_blur.apply(scale < 1.0f, 0);
 
     // Put the user's pattern back when we stop forcing, so turning DLSS off really returns to stock.
     static int saved_pattern = -1;
