@@ -17,7 +17,11 @@
 // such a draw and the triangle is redrawn unscaled (game::redo_fullscreen_tri_unscaled).
 namespace kc::screen_size_fix {
 
+// Auto exposure (HDRSampleLumInitial): runs with the per-pass scale reset to 1 (full 64x64 viewport) but reads the
+// quarter-res scene, whose current frame is only in the sub-rect; the rest is stale, so the measured luminance (and
+// the exposure) was wrong: the image got darker. Fix: its VS's g_VS_HPosScale.xy = the frame's downscale factor.
 struct Shader {
+    enum Kind { FogPS, LumInitialPS, SelfScalingVS } kind = FogPS;
     void* shader = nullptr;  // ID3D11PixelShader* / ID3D11VertexShader*, identity only
     UINT cb_slot = ~0u;      // constant buffer holding the value to replace
     UINT offset = 0;         // byte offset of it
@@ -39,7 +43,7 @@ using DrawFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, UINT);
 // Render thread, from the Draw hook. Returns true if the draw must be skipped (self-scaling VS on a scaled triangle,
 // which is then redrawn unscaled).
 bool skip_for_vs(const Shader* vs);
-// Render thread, from the Draw hook while a fog PS is bound.
-void draw(ID3D11DeviceContext* ctx, const Shader& ps, UINT count, UINT start, DrawFn original);
+// Render thread, from the Draw hook while a fixed PS is bound (vs: the bound VS's entry, or nullptr).
+void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT count, UINT start, DrawFn original);
 
 }  // namespace kc::screen_size_fix

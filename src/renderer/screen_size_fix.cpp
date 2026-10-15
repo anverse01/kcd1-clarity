@@ -49,6 +49,12 @@ static bool find_var(ID3D11ShaderReflection* r, const char* name, UINT* slot, UI
 }
 
 bool reflect_ps(const void* code, SIZE_T size, Shader* out) {
+    if (contains(code, size, "SampleLumOffsets0")) {
+        out->kind = Shader::LumInitialPS;
+        ++g_status.ps_seen;
+        logf("screen_size_fix: luminance PS (HDRSampleLumInitial)");
+        return true;
+    }
     if (!contains(code, size, "zMap") || !contains(code, size, "PS_ScreenSize"))
         return false;
     ID3D11ShaderReflection* r = nullptr;
@@ -66,6 +72,7 @@ bool reflect_ps(const void* code, SIZE_T size, Shader* out) {
     r->Release();
     if (!ok)
         return false;
+    out->kind = Shader::FogPS;
     ++g_status.ps_seen;
     logf("screen_size_fix: fog PS: zMap t%u, PS_ScreenSize cb%u +%u", out->zmap_slot, out->cb_slot, out->offset);
     return true;
@@ -114,6 +121,7 @@ bool reflect_vs(const void* code, SIZE_T size, Shader* out) {
     }
     if (!self_scaling || out->offset % 16 != 0)  // .xy of a float4 register
         return false;
+    out->kind = Shader::SelfScalingVS;
     ++g_status.vs_seen;
     logf("screen_size_fix: self-scaling VS: TEXCOORD0 v%d * g_VS_HPosScale cb%u +%u", tc_reg, out->cb_slot,
          out->offset);
@@ -165,7 +173,7 @@ struct Patch {
     }
 };
 
-static Patch g_ps_patch;
+static Patch g_ps_patch, g_vs_patch;
 
 bool skip_for_vs(const Shader* vs) {
     if (!vs || !g_status.enabled || !game::inside_scaled_fullscreen_tri())
@@ -175,9 +183,30 @@ bool skip_for_vs(const Shader* vs) {
     return true;
 }
 
-void draw(ID3D11DeviceContext* ctx, const Shader& ps, UINT count, UINT start, DrawFn original) {
+void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT count, UINT start, DrawFn original) {
+    if (!g_status.enabled) {
+        original(ctx, count, start);
+        return;
+    }
+    if (ps.kind == Shader::LumInitialPS) {
+        game::Vec2 d = game::current_downscale();
+        ID3D11Buffer* cb = nullptr;
+        if (vs && (d.x < 0.999f || d.y < 0.999f))
+            ctx->VSGetConstantBuffers(vs->cb_slot, 1, &cb);
+        ID3D11Buffer* b = cb ? g_vs_patch.make(ctx, cb, vs->offset, d.x, d.y) : nullptr;
+        if (b) {
+            ctx->VSSetConstantBuffers(vs->cb_slot, 1, &b);
+            ++g_status.ps_fixed;
+        }
+        original(ctx, count, start);
+        if (b)
+            ctx->VSSetConstantBuffers(vs->cb_slot, 1, &cb);
+        if (cb)
+            cb->Release();
+        return;
+    }
     game::Vec2 scale = game::current_viewport_scale();
-    if (!g_status.enabled || (scale.x >= 0.999f && scale.y >= 0.999f)) {
+    if (scale.x >= 0.999f && scale.y >= 0.999f) {
         original(ctx, count, start);
         return;
     }

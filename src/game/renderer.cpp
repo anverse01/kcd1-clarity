@@ -80,6 +80,11 @@ static const RECT* scaled_region(int w, int h, const RECT* src, RECT* out) {
 
 static thread_local bool t_scaled_tri, t_redo;
 
+Vec2 current_downscale() {
+    uintptr_t r = sym::addr(sym::Id::gRenDev);
+    return r ? field<Vec2>(r, kDownscaleCur) : Vec2{1, 1};
+}
+
 bool inside_scaled_fullscreen_tri() { return t_scaled_tri; }
 void redo_fullscreen_tri_unscaled() { t_redo = true; }
 
