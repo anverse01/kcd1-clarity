@@ -42,6 +42,11 @@ bool ready();  // symbols needed for the snapshot are resolved
 void set_downscale(float scale);
 // Downscale factor applied to the pass being rendered right now (+0x6764), (1, 1) outside the scene.
 Vec2 current_viewport_scale();
+// True while DrawFullScreenTri[WPOS] is drawing a triangle whose UVs we scaled (render thread).
+bool inside_scaled_fullscreen_tri();
+// From the Draw hook, inside such a triangle: the bound vertex shader scales the UVs itself (HPosScale), so the
+// draw was skipped; the triangle is drawn again with the engine's own (unscaled) UVs.
+void redo_fullscreen_tri_unscaled();
 Probe& probe();
 // Render thread, every Present: applies the probe and takes a snapshot.
 void on_present();

@@ -78,14 +78,34 @@ static const RECT* scaled_region(int w, int h, const RECT* src, RECT* out) {
     return out;
 }
 
-static int64_t __fastcall hk_draw_fullscreen_tri(int w, int h, float z, const RECT* src) {
+static thread_local bool t_scaled_tri, t_redo;
+
+bool inside_scaled_fullscreen_tri() { return t_scaled_tri; }
+void redo_fullscreen_tri_unscaled() { t_redo = true; }
+
+template <typename Fn>
+static int64_t draw_tri(Fn original, int w, int h, float z, const RECT* src) {
     RECT rc;
-    return o_draw_fullscreen_tri(w, h, z, scaled_region(w, h, src, &rc));
+    const RECT* region = scaled_region(w, h, src, &rc);
+    if (region != &rc)
+        return original(w, h, z, src);
+    t_scaled_tri = true;
+    t_redo = false;
+    int64_t r = original(w, h, z, region);
+    t_scaled_tri = false;
+    if (t_redo) {
+        t_redo = false;
+        r = original(w, h, z, src);
+    }
+    return r;
+}
+
+static int64_t __fastcall hk_draw_fullscreen_tri(int w, int h, float z, const RECT* src) {
+    return draw_tri(o_draw_fullscreen_tri, w, h, z, src);
 }
 
 static int64_t __fastcall hk_draw_fullscreen_tri_wpos(int w, int h, float z, const RECT* src) {
-    RECT rc;
-    return o_draw_fullscreen_tri_wpos(w, h, z, scaled_region(w, h, src, &rc));
+    return draw_tri(o_draw_fullscreen_tri_wpos, w, h, z, src);
 }
 
 static void hook(sym::Id id, const char* name, void* detour, void** original) {

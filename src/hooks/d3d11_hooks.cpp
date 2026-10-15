@@ -21,15 +21,23 @@ using CreatePixelShaderFn = HRESULT(STDMETHODCALLTYPE*)(ID3D11Device*, const voi
 using PSSetShaderFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, ID3D11PixelShader*, ID3D11ClassInstance* const*,
                                                UINT);
 using DrawFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, UINT);
+using CreateVertexShaderFn = HRESULT(STDMETHODCALLTYPE*)(ID3D11Device*, const void*, SIZE_T, ID3D11ClassLinkage*,
+                                                          ID3D11VertexShader**);
+using VSSetShaderFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, ID3D11VertexShader*, ID3D11ClassInstance* const*,
+                                               UINT);
 
 // Vtable slots (d3d11.h declaration order).
-constexpr int kCreatePixelShaderSlot = 15;  // ID3D11Device
+constexpr int kCreateVertexShaderSlot = 12;  // ID3D11Device
+constexpr int kCreatePixelShaderSlot = 15;
 constexpr int kPSSetShaderSlot = 9;         // ID3D11DeviceContext
+constexpr int kVSSetShaderSlot = 11;
 constexpr int kDrawSlot = 13;
 
 static CreatePixelShaderFn o_create_pixel_shader;
 static PSSetShaderFn o_ps_set_shader;
 static DrawFn o_draw;
+static CreateVertexShaderFn o_create_vertex_shader;
+static VSSetShaderFn o_vs_set_shader;
 
 static Status g_status;
 static std::mutex g_mutex;  // guards g_taa (written on shader-creating threads, read on the render thread)
@@ -39,6 +47,9 @@ static const TaaShader* g_bound_taa;       // render thread: g_bound_ps if it is
 static const TaaShader* g_last_taa;
 static std::vector<screen_size_fix::Shader> g_fix;   // guarded by g_mutex, never reallocated (reserve)
 static const screen_size_fix::Shader* g_bound_fix;  // render thread
+static std::vector<screen_size_fix::Shader> g_fix_vs;  // guarded by g_mutex, never reallocated (reserve)
+static ID3D11VertexShader* g_bound_vs;              // render thread
+static const screen_size_fix::Shader* g_bound_fix_vs;
 static thread_local bool t_inside;         // our own draws do not re-enter
 
 const Status& status() { return g_status; }
@@ -108,7 +119,7 @@ static HRESULT STDMETHODCALLTYPE hk_create_pixel_shader(ID3D11Device* device, co
     HRESULT hr = o_create_pixel_shader(device, code, size, linkage, out);
     if (SUCCEEDED(hr) && out && *out && !t_inside) {
         screen_size_fix::Shader f;
-        if (screen_size_fix::reflect(code, size, &f)) {
+        if (screen_size_fix::reflect_ps(code, size, &f)) {
             f.shader = *out;
             std::lock_guard lock(g_mutex);
             g_fix.reserve(256);
@@ -127,6 +138,39 @@ static HRESULT STDMETHODCALLTYPE hk_create_pixel_shader(ID3D11Device* device, co
         }
     }
     return hr;
+}
+
+static HRESULT STDMETHODCALLTYPE hk_create_vertex_shader(ID3D11Device* device, const void* code, SIZE_T size,
+                                                         ID3D11ClassLinkage* linkage, ID3D11VertexShader** out) {
+    HRESULT hr = o_create_vertex_shader(device, code, size, linkage, out);
+    if (SUCCEEDED(hr) && out && *out && !t_inside) {
+        screen_size_fix::Shader f;
+        if (screen_size_fix::reflect_vs(code, size, &f)) {
+            f.shader = *out;
+            std::lock_guard lock(g_mutex);
+            g_fix_vs.reserve(256);
+            if (g_fix_vs.size() < g_fix_vs.capacity())
+                g_fix_vs.push_back(f);
+        }
+    }
+    return hr;
+}
+
+static void STDMETHODCALLTYPE hk_vs_set_shader(ID3D11DeviceContext* ctx, ID3D11VertexShader* vs,
+                                               ID3D11ClassInstance* const* inst, UINT n) {
+    if (vs != g_bound_vs && !t_inside) {
+        g_bound_vs = vs;
+        g_bound_fix_vs = nullptr;
+        if (vs) {
+            std::lock_guard lock(g_mutex);
+            for (const screen_size_fix::Shader& f : g_fix_vs)
+                if (f.shader == vs) {
+                    g_bound_fix_vs = &f;
+                    break;
+                }
+        }
+    }
+    o_vs_set_shader(ctx, vs, inst, n);
 }
 
 static void STDMETHODCALLTYPE hk_ps_set_shader(ID3D11DeviceContext* ctx, ID3D11PixelShader* ps,
@@ -164,6 +208,8 @@ static void STDMETHODCALLTYPE hk_draw(ID3D11DeviceContext* ctx, UINT count, UINT
             return;
         }
     }
+    if (!t_inside && screen_size_fix::skip_for_vs(g_bound_fix_vs))
+        return;
     if (g_bound_fix && !t_inside) {
         t_inside = true;
         screen_size_fix::draw(ctx, *g_bound_fix, count, start, o_draw);
@@ -196,12 +242,16 @@ bool install() {
                                  reinterpret_cast<void**>(&o_create_pixel_shader));
     MH_STATUS s2 = MH_CreateHook(cvt[kPSSetShaderSlot], &hk_ps_set_shader, reinterpret_cast<void**>(&o_ps_set_shader));
     MH_STATUS s3 = MH_CreateHook(cvt[kDrawSlot], &hk_draw, reinterpret_cast<void**>(&o_draw));
+    MH_STATUS s5 = MH_CreateHook(dvt[kCreateVertexShaderSlot], &hk_create_vertex_shader,
+                                 reinterpret_cast<void**>(&o_create_vertex_shader));
+    MH_STATUS s6 = MH_CreateHook(cvt[kVSSetShaderSlot], &hk_vs_set_shader, reinterpret_cast<void**>(&o_vs_set_shader));
     MH_STATUS s4 = MH_EnableHook(MH_ALL_HOOKS);
     ctx->Release();
     device->Release();
-    logf("d3d11: hooks CreatePixelShader %s, PSSetShader %s, Draw %s, enable %s", MH_StatusToString(s1),
-         MH_StatusToString(s2), MH_StatusToString(s3), MH_StatusToString(s4));
-    g_status.installed = s1 == MH_OK && s2 == MH_OK && s3 == MH_OK && s4 == MH_OK;
+    logf("d3d11: hooks CreatePixelShader %s, PSSetShader %s, Draw %s, CreateVertexShader %s, VSSetShader %s, "
+         "enable %s", MH_StatusToString(s1), MH_StatusToString(s2), MH_StatusToString(s3), MH_StatusToString(s5),
+         MH_StatusToString(s6), MH_StatusToString(s4));
+    g_status.installed = s1 == MH_OK && s2 == MH_OK && s3 == MH_OK && s4 == MH_OK && s5 == MH_OK && s6 == MH_OK;
     return g_status.installed;
 }
 
