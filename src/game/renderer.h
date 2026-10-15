@@ -37,6 +37,9 @@ void install_hooks();
 uint64_t fullscreen_uv_fixes();  // draws whose UVs were scaled, for the debug window
 
 bool ready();  // symbols needed for the snapshot are resolved
+// Asks the engine to render the scene into a (scale x scale) sub-rect from the next frame on (sticky until
+// changed). The F3 probe's force, when on, wins. Render thread.
+void set_downscale(float scale);
 Probe& probe();
 // Render thread, every Present: applies the probe and takes a snapshot.
 void on_present();

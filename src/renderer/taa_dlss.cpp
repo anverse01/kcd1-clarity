@@ -9,6 +9,7 @@
 #include <optional>
 
 #include "core/log.h"
+#include "game/renderer.h"
 #include "game/symbols.h"
 #include "renderer/state_backup.h"
 #include "upscaler/dlss.h"
@@ -220,7 +221,20 @@ static bool ensure_textures(ID3D11Device* device, UINT w, UINT h) {
 
 // ---------------------------------------------------------------------------------------------------------
 
+// Render scale in use: only below 1 while DLSS is on and can run, else the engine's own chain would show the
+// small sub-rect (it has no upscale on PC).
+static float wanted_scale() {
+    if (g_settings.mode != Mode::Dlss || g_settings.skip_ngx)
+        return 1.0f;
+    const dlss::Status& d = dlss::status();
+    if (d.init_tried && !d.available)
+        return 1.0f;
+    return g_settings.render_scale;
+}
+
 void on_present() {
+    game::set_downscale(wanted_scale());
+
     // Put the user's pattern back when we stop forcing, so turning DLSS off really returns to stock.
     static int saved_pattern = -1;
     int* p = sym::ptr<int>(sym::Id::CV_r_AntialiasingTAAPattern);
@@ -290,11 +304,12 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
     D3D11_TEXTURE2D_DESC td;
     static_cast<ID3D11Texture2D*>(target)->GetDesc(&td);
     target->Release();
+    // With SetViewportDownscale the scene (and the TAA draw) covers the top-left render_w x render_h of
+    // full-size targets; DLSS reads that sub-rect and writes the whole target, which the composite then shows 1:1.
     const UINT render_w = static_cast<UINT>(b.viewport.Width), render_h = static_cast<UINT>(b.viewport.Height);
-    if (b.viewport.TopLeftX != 0 || b.viewport.TopLeftY != 0 || render_w == 0 || render_h == 0)
+    if (b.viewport.TopLeftX != 0 || b.viewport.TopLeftY != 0 || render_w == 0 || render_h == 0 ||
+        render_w > td.Width || render_h > td.Height)
         return fail("unexpected TAA viewport");
-    if (render_w != td.Width || render_h != td.Height)
-        return fail("render size differs from target size (downscale): not supported yet");
 
     ID3D11Device* device = nullptr;
     ctx->GetDevice(&device);
@@ -416,8 +431,9 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
 
     // 3. Into the engine's TAA output, encoded like PostAA_PS.
     if (ok || g_settings.debug_view != 0) {
+        D3D11_VIEWPORT full = {0, 0, static_cast<float>(td.Width), static_cast<float>(td.Height), 0, 1};
         ctx->OMSetRenderTargets(1, &b.rtv, nullptr);
-        ctx->RSSetViewports(1, &b.viewport);
+        ctx->RSSetViewports(1, &full);
         ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         ctx->VSSetShader(g_writeback_vs, nullptr, 0);
         ctx->PSSetShader(g_writeback_ps, nullptr, 0);

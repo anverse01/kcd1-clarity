@@ -320,6 +320,15 @@ static void draw_dlss_section() {
         config_save();
         taa_dlss::request_reset();
     }
+    ImGui::SetNextItemWidth(260);
+    if (ImGui::Combo("Quality", &config().dlss_quality,
+                     "DLAA (100%)\0Quality (66.7%)\0Balanced (58%)\0Performance (50%)\0Ultra Performance (33%)\0")) {
+        s.render_scale = render_scale_for(config().dlss_quality);
+        config_save();
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("scale %.3f, engine downscale (%.3f, %.3f)", s.render_scale, snap.downscale_cur.x,
+                        snap.downscale_cur.y);
     if (snap.valid && snap.aa_mode_active != 3)
         ImGui::TextColored(kWarn, "Anti-aliasing is not SMAA 2TX (r_AntialiasingMode 3): the TAA pass does not run");
 

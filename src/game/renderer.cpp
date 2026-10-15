@@ -33,6 +33,9 @@ static DrawFullScreenTriFn o_draw_fullscreen_tri, o_draw_fullscreen_tri_wpos;
 static uint64_t g_uv_fixes;
 
 static Probe g_probe;
+static float g_wanted_downscale = 1.0f, g_sent_downscale = 1.0f;
+
+void set_downscale(float scale) { g_wanted_downscale = scale; }
 static Snapshot g_snap;
 static Vec2 g_history[kHistory];
 static int g_history_count, g_history_next;
@@ -106,15 +109,17 @@ void on_present() {
     if (!r)
         return;
 
-    // The request is sticky in the engine, so turning the probe off has to ask for (1, 1) once.
-    static bool was_forcing;
-    if (g_probe.force_downscale || was_forcing) {
+    // The request is sticky in the engine: always send the wanted factor when it differs from the last request.
+    float want = g_probe.force_downscale ? g_probe.downscale : g_wanted_downscale;
+    Vec2 req = field<Vec2>(r, kDownscaleReq);
+    if (fabsf(want - g_sent_downscale) > 1e-4f || (want < 1.0f && req.x >= 0.999f)) {
         if (auto fn = reinterpret_cast<SetViewportDownscaleFn>(sym::addr(sym::Id::CD3D9Renderer__SetViewportDownscale))) {
-            float f = g_probe.force_downscale ? g_probe.downscale : 1.0f;
             Vec2 got;
-            fn(reinterpret_cast<void*>(r), &got, f, f);
+            fn(reinterpret_cast<void*>(r), &got, want, want);
+            if (fabsf(want - g_sent_downscale) > 1e-4f)
+                logf("game: SetViewportDownscale(%.3f) -> (%.3f, %.3f)", want, got.x, got.y);
         }
-        was_forcing = g_probe.force_downscale;
+        g_sent_downscale = want;
     }
     if (g_probe.force_pattern >= 0)
         if (int* p = sym::ptr<int>(sym::Id::CV_r_AntialiasingTAAPattern))

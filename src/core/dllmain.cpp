@@ -57,6 +57,7 @@ static DWORD WINAPI init_thread(LPVOID) {
     taa_dlss::settings().engine_after = config().engine_after;
     taa_dlss::settings().force_halton = config().force_halton;
     taa_dlss::settings().state_swap = config().state_swap;
+    taa_dlss::settings().render_scale = render_scale_for(config().dlss_quality);
 
     if (MH_Initialize() != MH_OK) {
         logf("MH_Initialize failed");
