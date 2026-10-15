@@ -31,6 +31,7 @@
 #include "game/renderer.h"
 #include "game/symbols.h"
 #include "hooks/d3d11_hooks.h"
+#include "renderer/screen_size_fix.h"
 #include "renderer/taa_dlss.h"
 #include "upscaler/dlss.h"
 #include "ui/input.h"
@@ -427,6 +428,10 @@ static void draw_probe_section() {
     ImGui::SetNextItemWidth(160);
     ImGui::SliderFloat("##scale", &p.downscale, 0.33f, 1.0f, "%.3f");
     ImGui::Checkbox("Fix full-screen UVs (DrawFullScreenTri[WPOS] hooks)", &p.fix_fullscreen_uv);
+    ImGui::Checkbox("Fix fog depth (PS_ScreenSize)", &screen_size_fix::status().enabled);
+    ImGui::SameLine();
+    ImGui::TextDisabled("%u shaders, %llu draws fixed", screen_size_fix::status().shaders_seen,
+                        (unsigned long long)screen_size_fix::status().draws_fixed);
     ImGui::SameLine();
     ImGui::TextDisabled("%llu draws fixed", (unsigned long long)game::fullscreen_uv_fixes());
     ImGui::Separator();

@@ -32,10 +32,22 @@ using DrawFullScreenTriFn = int64_t(__fastcall*)(int w, int h, float z, const RE
 static DrawFullScreenTriFn o_draw_fullscreen_tri, o_draw_fullscreen_tri_wpos;
 static uint64_t g_uv_fixes;
 
+template <typename T>
+static T field(uintptr_t base, uintptr_t offset) {
+    T v;
+    memcpy(&v, reinterpret_cast<const void*>(base + offset), sizeof(T));
+    return v;
+}
+
 static Probe g_probe;
 static float g_wanted_downscale = 1.0f, g_sent_downscale = 1.0f;
 
 void set_downscale(float scale) { g_wanted_downscale = scale; }
+
+Vec2 current_viewport_scale() {
+    uintptr_t r = sym::addr(sym::Id::gRenDev);
+    return r ? field<Vec2>(r, kViewportScale) : Vec2{1, 1};
+}
 static Snapshot g_snap;
 static Vec2 g_history[kHistory];
 static int g_history_count, g_history_next;
@@ -52,12 +64,6 @@ const Vec2* jitter_history(int* count) {
     return ordered;
 }
 
-template <typename T>
-static T field(uintptr_t base, uintptr_t offset) {
-    T v;
-    memcpy(&v, reinterpret_cast<const void*>(base + offset), sizeof(T));
-    return v;
-}
 
 // The region that makes the UVs cover the downscaled sub-rect, or nullptr when no fix is needed.
 static const RECT* scaled_region(int w, int h, const RECT* src, RECT* out) {

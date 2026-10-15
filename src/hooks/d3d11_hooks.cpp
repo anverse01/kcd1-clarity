@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "core/log.h"
+#include "renderer/screen_size_fix.h"
 #include "renderer/taa_dlss.h"
 
 namespace kc::d3d11 {
@@ -36,6 +37,8 @@ static std::vector<TaaShader> g_taa;
 static ID3D11PixelShader* g_bound_ps;      // render thread
 static const TaaShader* g_bound_taa;       // render thread: g_bound_ps if it is a TAA shader
 static const TaaShader* g_last_taa;
+static std::vector<screen_size_fix::Shader> g_fix;   // guarded by g_mutex, never reallocated (reserve)
+static const screen_size_fix::Shader* g_bound_fix;  // render thread
 static thread_local bool t_inside;         // our own draws do not re-enter
 
 const Status& status() { return g_status; }
@@ -104,6 +107,14 @@ static HRESULT STDMETHODCALLTYPE hk_create_pixel_shader(ID3D11Device* device, co
                                                         ID3D11ClassLinkage* linkage, ID3D11PixelShader** out) {
     HRESULT hr = o_create_pixel_shader(device, code, size, linkage, out);
     if (SUCCEEDED(hr) && out && *out && !t_inside) {
+        screen_size_fix::Shader f;
+        if (screen_size_fix::reflect(code, size, &f)) {
+            f.shader = *out;
+            std::lock_guard lock(g_mutex);
+            g_fix.reserve(256);
+            if (g_fix.size() < g_fix.capacity())
+                g_fix.push_back(f);
+        }
         TaaShader t;
         if (reflect_taa(code, size, &t)) {
             t.shader = *out;
@@ -123,11 +134,17 @@ static void STDMETHODCALLTYPE hk_ps_set_shader(ID3D11DeviceContext* ctx, ID3D11P
     if (ps != g_bound_ps && !t_inside) {
         g_bound_ps = ps;
         g_bound_taa = nullptr;
+        g_bound_fix = nullptr;
         if (ps) {
             std::lock_guard lock(g_mutex);
             for (const TaaShader& t : g_taa)
                 if (t.shader == ps) {
                     g_bound_taa = &t;
+                    break;
+                }
+            for (const screen_size_fix::Shader& f : g_fix)
+                if (f.shader == ps) {
+                    g_bound_fix = &f;
                     break;
                 }
         }
@@ -146,6 +163,12 @@ static void STDMETHODCALLTYPE hk_draw(ID3D11DeviceContext* ctx, UINT count, UINT
             ++g_status.taa_replaced;
             return;
         }
+    }
+    if (g_bound_fix && !t_inside) {
+        t_inside = true;
+        screen_size_fix::draw(ctx, *g_bound_fix, count, start, o_draw);
+        t_inside = false;
+        return;
     }
     o_draw(ctx, count, start);
 }

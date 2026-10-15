@@ -79,6 +79,7 @@ add_library(kcd_clarity SHARED
     src/game/symbols.cpp
     src/hooks/d3d11_hooks.cpp
     src/hooks/present.cpp
+    src/renderer/screen_size_fix.cpp
     src/renderer/state_backup.cpp
     src/renderer/taa_dlss.cpp
     src/upscaler/dlss.cpp
