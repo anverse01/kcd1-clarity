@@ -48,6 +48,9 @@ Vec2 current_downscale();
 Vec2 native_size();
 // True while DrawFullScreenTri[WPOS] is drawing a triangle whose UVs we scaled (render thread).
 bool inside_scaled_fullscreen_tri();
+// True while it draws a triangle with the engine's own source region while the frame is downscaled (the gather DOF
+// passes the sub-rect itself, but with full viewports).
+bool inside_engine_region_tri();
 // From the Draw hook, inside such a triangle: the bound vertex shader scales the UVs itself (HPosScale), so the
 // draw was skipped; the triangle is drawn again with the engine's own (unscaled) UVs.
 void redo_fullscreen_tri_unscaled();

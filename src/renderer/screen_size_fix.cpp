@@ -9,6 +9,7 @@
 
 #include "core/log.h"
 #include "game/renderer.h"
+#include "renderer/state_backup.h"
 
 namespace kc::screen_size_fix {
 
@@ -69,7 +70,70 @@ bool reflect_ps(const void* code, SIZE_T size, Shader* out) {
         logf("screen_size_fix: SVO trace PS: g_mViewProj cb%u +%u", out->cb_slot, out->offset);
         return true;
     }
-    if (!contains(code, size, "zMap") || !contains(code, size, "PS_ScreenSize"))
+    if (contains(code, size, "SVO_ReprojectionMatrix")) {
+        ID3D11ShaderReflection* r = nullptr;
+        if (FAILED(D3DReflect(code, size, __uuidof(ID3D11ShaderReflection), reinterpret_cast<void**>(&r))))
+            return false;
+        bool ok = find_var(r, "SVO_ReprojectionMatrix", &out->cb_slot, &out->offset) && out->offset % 16 == 0;
+        r->Release();
+        if (ok) {  // else only declared (shared cbuffer): try the other kinds
+            out->kind = Shader::ReprojPS;
+            ++g_status.ps_seen;
+            logf("screen_size_fix: SVO reprojection PS: SVO_ReprojectionMatrix cb%u +%u", out->cb_slot, out->offset);
+            return true;
+        }
+    }
+    if (contains(code, size, "ViewSpaceParams") &&
+        (contains(code, size, "SSDOParams") || contains(code, size, "SSSBlurDir"))) {
+        ID3D11ShaderReflection* r = nullptr;
+        if (FAILED(D3DReflect(code, size, __uuidof(ID3D11ShaderReflection), reinterpret_cast<void**>(&r))))
+            return false;
+        UINT radius_slot = ~0u;
+        bool ssdo = find_var(r, "SSDOParams", &radius_slot, &out->radius_offset);
+        if (!ssdo && !find_var(r, "SSSBlurDir", &radius_slot, &out->radius_offset))
+            radius_slot = ~0u;
+        bool ok = find_var(r, "ViewSpaceParams", &out->cb_slot, &out->offset) && out->offset % 16 == 0;
+        r->Release();
+        if (ok) {  // else only declared: try the other kinds
+            if (radius_slot != out->cb_slot || out->radius_offset % 16 != 0) {
+                logf("screen_size_fix: view-space PS: radius not next to ViewSpaceParams, left alone");
+                out->radius_offset = ~0u;
+            }
+            out->radius_xy_only = !ssdo;
+            out->kind = Shader::ViewSpacePS;
+            ++g_status.ps_seen;
+            logf("screen_size_fix: view-space PS (%s): ViewSpaceParams cb%u +%u, radius +%d", ssdo ? "SSDO" : "SSS",
+                 out->cb_slot, out->offset, out->radius_offset == ~0u ? -1 : int(out->radius_offset));
+            return true;
+        }
+        out->radius_offset = ~0u;
+    }
+    if (contains(code, size, "vDofParamsFocus") && !contains(code, size, "PS_NearFarClipDist")) {
+        // Gather DOF passes other than the prep and the composite (those read PS_NearFarClipDist).
+        ID3D11ShaderReflection* r = nullptr;
+        if (FAILED(D3DReflect(code, size, __uuidof(ID3D11ShaderReflection), reinterpret_cast<void**>(&r))))
+            return false;
+        bool gather = find_var(r, "PS_ScreenSize", &out->cb_slot, &out->offset);
+        r->Release();
+        out->kind = gather ? Shader::DofGatherPS : Shader::DofPS;
+        ++g_status.ps_seen;
+        logf("screen_size_fix: DOF %s PS", gather ? "gather" : "tile");
+        return true;
+    }
+    if (contains(code, size, "vDofParamsFocus0") && contains(code, size, "PS_NearFarClipDist") &&
+        !contains(code, size, "PS_ScreenSize")) {
+        out->kind = Shader::DofPS;  // gather DOF prep (near/far layers + CoC)
+        ++g_status.ps_seen;
+        logf("screen_size_fix: DOF prep PS");
+        return true;
+    }
+    // Gather DOF composite (MotionBlur.cfx CompositeDofPS, the pause-menu blur): bicubic-samples the half-res
+    // layers with size PS_ScreenSize.xy * 0.5, the scaled viewport instead of the texture. Same fix as the fog,
+    // with its full-res depth (_tex0) giving the size. The other DOF passes have no vDofParamsFocus0 +
+    // PS_NearFarClipDist + PS_ScreenSize combination (DofPS's CoC scale wants the scaled PS_ScreenSize).
+    const bool dof = contains(code, size, "vDofParamsFocus0") && contains(code, size, "PS_NearFarClipDist");
+    const char* size_tex = dof ? "_tex0" : "zMap";
+    if (!contains(code, size, size_tex) || !contains(code, size, "PS_ScreenSize"))
         return false;
     ID3D11ShaderReflection* r = nullptr;
     if (FAILED(D3DReflect(code, size, __uuidof(ID3D11ShaderReflection), reinterpret_cast<void**>(&r))))
@@ -79,7 +143,7 @@ bool reflect_ps(const void* code, SIZE_T size, Shader* out) {
     for (UINT i = 0; i < sd.BoundResources; ++i) {
         D3D11_SHADER_INPUT_BIND_DESC b;
         r->GetResourceBindingDesc(i, &b);
-        if (b.Type == D3D_SIT_TEXTURE && b.Dimension == D3D_SRV_DIMENSION_TEXTURE2D && !strcmp(b.Name, "zMap"))
+        if (b.Type == D3D_SIT_TEXTURE && b.Dimension == D3D_SRV_DIMENSION_TEXTURE2D && !strcmp(b.Name, size_tex))
             out->zmap_slot = b.BindPoint;
     }
     bool ok = find_var(r, "PS_ScreenSize", &out->cb_slot, &out->offset) && out->zmap_slot != ~0u;
@@ -88,11 +152,43 @@ bool reflect_ps(const void* code, SIZE_T size, Shader* out) {
         return false;
     out->kind = Shader::FogPS;
     ++g_status.ps_seen;
-    logf("screen_size_fix: fog PS: zMap t%u, PS_ScreenSize cb%u +%u", out->zmap_slot, out->cb_slot, out->offset);
+    logf("screen_size_fix: %s PS: %s t%u, PS_ScreenSize cb%u +%u", dof ? "DOF composite" : "fog", size_tex,
+         out->zmap_slot, out->cb_slot, out->offset);
+    return true;
+}
+
+bool reflect_cs(const void* code, SIZE_T size, Shader* out) {
+    if (!contains(code, size, "FrustumTL") || !contains(code, size, "ProjParams") ||
+        !contains(code, size, "TiledLightsCullInfo"))
+        return false;
+    ID3D11ShaderReflection* r = nullptr;
+    if (FAILED(D3DReflect(code, size, __uuidof(ID3D11ShaderReflection), reinterpret_cast<void**>(&r))))
+        return false;
+    const char* names[3] = {"FrustumTR", "FrustumBL", "ProjParams"};
+    bool ok = find_var(r, "FrustumTL", &out->cb_slot, &out->offset) && out->offset % 16 == 0;
+    for (int i = 0; ok && i < 3; ++i) {
+        UINT slot = ~0u;
+        ok = find_var(r, names[i], &slot, &out->tiled[i]) && slot == out->cb_slot && out->tiled[i] % 16 == 0;
+    }
+    r->Release();
+    if (!ok) {
+        logf("screen_size_fix: tiled shading CS without the expected constants, left alone");
+        return false;
+    }
+    out->kind = Shader::TiledShadingCS;
+    ++g_status.ps_seen;
+    logf("screen_size_fix: tiled shading CS: FrustumTL cb%u +%u, TR +%u, BL +%u, ProjParams +%u", out->cb_slot,
+         out->offset, out->tiled[0], out->tiled[1], out->tiled[2]);
     return true;
 }
 
 bool reflect_vs(const void* code, SIZE_T size, Shader* out) {
+    if (contains(code, size, "vDofParamsFocus")) {  // TileMinCoCVS / DownscaleDofVS: texel offsets in the VS
+        out->kind = Shader::DofVS;
+        ++g_status.vs_seen;
+        logf("screen_size_fix: DOF VS");
+        return true;
+    }
     if (!contains(code, size, "g_VS_HPosScale"))
         return false;
     ID3D11ShaderReflection* r = nullptr;
@@ -187,7 +283,7 @@ struct Patch {
     }
 };
 
-static Patch g_ps_patch, g_vs_patch, g_bloom_patch;
+static Patch g_ps_patch, g_bloom_patch;
 
 // Texture the luminance pass read last (identity only): the quarter-res scene, also the bloom's source.
 static void* g_lum_source;
@@ -233,10 +329,26 @@ static bool target_size(ID3D11DeviceContext* ctx, UINT* w, UINT* h) {
     return ok;
 }
 
+// Size of the 2D texture bound at PS slot `slot`; false if none.
+static bool ps_texture_size(ID3D11DeviceContext* ctx, UINT slot, UINT* w, UINT* h) {
+    ID3D11Resource* res = static_cast<ID3D11Resource*>(ps_resource(ctx, slot));
+    if (!res)
+        return false;
+    D3D11_RESOURCE_DIMENSION dim;
+    res->GetType(&dim);
+    if (dim != D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+        return false;
+    D3D11_TEXTURE2D_DESC td;
+    static_cast<ID3D11Texture2D*>(res)->GetDesc(&td);
+    *w = td.Width;
+    *h = td.Height;
+    return true;
+}
+
 TriAction scaled_tri_action(ID3D11DeviceContext* ctx, const Shader* vs) {
     if (!g_status.enabled || !game::inside_scaled_fullscreen_tri())
         return TriAction::Draw;
-    if (vs) {
+    if (vs && vs->kind == Shader::SelfScalingVS) {
         ++g_status.vs_fixed;
         return TriAction::Redraw;
     }
@@ -246,12 +358,24 @@ TriAction scaled_tri_action(ID3D11DeviceContext* ctx, const Shader* vs) {
     if (n == 0 || !target_size(ctx, &w, &h))
         return TriAction::Draw;
     bool covers = vp.TopLeftX == 0 && vp.TopLeftY == 0 && vp.Width >= float(w) - 0.5f && vp.Height >= float(h) - 0.5f;
-    if (!covers)
-        return TriAction::Draw;
     // Screen-proportional: same aspect as the native render size (426x240 vs 2560x1440).
     game::Vec2 native = game::native_size();
-    float aspect = float(w) / float(h), screen = native.y > 0 ? native.x / native.y : 0;
-    if (screen > 0 && fabsf(aspect / screen - 1.0f) < 0.01f) {
+    float screen = native.y > 0 ? native.x / native.y : 0;
+    auto screen_shaped = [&](UINT tw, UINT th) {
+        return screen > 0 && th > 0 && fabsf(float(tw) / float(th) / screen - 1.0f) < 0.01f;
+    };
+    if (!covers) {
+        // A partial viewport is usually the sub-rect already, but reduction chains on small non-screen targets
+        // (texToTex 128x64 -> 64x32 -> 16x8 ... -> 2x1, both target and source 2:1) draw into part of their target
+        // too; their source holds no scene frame, so scaled UVs zoomed into it (A/B diff kcd_frame19102 vs 20786).
+        UINT sw = 0, sh = 0;
+        if (!screen_shaped(w, h) && ps_texture_size(ctx, 0, &sw, &sh) && !screen_shaped(sw, sh)) {
+            ++g_status.non_screen;
+            return TriAction::Redraw;
+        }
+        return TriAction::Draw;
+    }
+    if (screen_shaped(w, h)) {
         ++g_status.shrunk;
         return TriAction::Shrink;
     }
@@ -265,22 +389,47 @@ TriAction scaled_tri_action(ID3D11DeviceContext* ctx, const Shader* vs) {
 // row1' = s.y*row1 + (1-s.y)*row3 (y is flipped in the UV). Then the UAV buffer is copied into a constant buffer.
 static const char kViewProjCS[] = R"(
 cbuffer Src : register(b0) { float4 src[4096]; };
-cbuffer Params : register(b1) { uint reg; uint count; float sx; float sy; };
+cbuffer Params : register(b1) {
+    uint reg; uint count; float sx; float sy;
+    uint mode; uint3 pad;  // mode 1: up to 3 registers rq[j].x become src[rq.x] * m + src[rq.y] * k + c instead
+    uint4 rq[3]; float4 m[3]; float4 k[3]; float4 c[3];
+};
 RWByteAddressBuffer dst : register(u0);
 [numthreads(64, 1, 1)]
 void main(uint i : SV_DispatchThreadID) {
     if (i >= count)
         return;
     float4 v = src[i];
-    if (i == reg)
+    if (mode == 1) {
+        for (uint j = 0; j < 3; ++j)
+            if (i == rq[j].x)
+                v = src[i] * m[j] + src[rq[j].y] * k[j] + c[j];
+    } else if (i == reg) {
         v = sx * src[reg] + (sx - 1.0) * src[reg + 3];
-    else if (i == reg + 1)
+    } else if (i == reg + 1) {
         v = sy * src[reg + 1] + (1.0 - sy) * src[reg + 3];
+    }
     dst.Store4(i * 16, asuint(v));
 }
 )";
 
+// One float4 register rewrite: reg(off) = reg(off) * mul + reg(add_off) * add_mul + add (byte offsets, ~0u: unused).
+struct RegOp {
+    UINT off = ~0u;
+    float mul[4] = {1, 1, 1, 1};
+    UINT add_off = ~0u;
+    float add_mul[4] = {0, 0, 0, 0};
+    float add[4] = {0, 0, 0, 0};
+};
+
 struct ViewProjPatch {
+    struct Params {
+        UINT reg, count;
+        float sx, sy;
+        UINT mode, pad[3];
+        UINT rq[3][4];
+        float m[3][4], k[3][4], c[3][4];
+    };
     bool failed = false;
     ID3D11ComputeShader* cs = nullptr;
     ID3D11Buffer* params = nullptr;
@@ -306,7 +455,7 @@ struct ViewProjPatch {
             }
             HRESULT hr = device->CreateComputeShader(code->GetBufferPointer(), code->GetBufferSize(), nullptr, &cs);
             code->Release();
-            D3D11_BUFFER_DESC d = {16, D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0, 0};
+            D3D11_BUFFER_DESC d = {sizeof(Params), D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0, 0};
             if (FAILED(hr) || FAILED(device->CreateBuffer(&d, nullptr, &params))) {
                 failed = true;
                 return false;
@@ -341,11 +490,34 @@ struct ViewProjPatch {
         return true;
     }
 
-    // Returns the patched buffer, or nullptr.
+    // Returns the patched buffer (g_mViewProj at offset remapped into the sub-rect), or nullptr.
     ID3D11Buffer* make(ID3D11DeviceContext* ctx, ID3D11Buffer* src, UINT offset, float sx, float sy) {
+        Params p = {offset / 16, 0, sx, sy, 0, {}, {{~0u}, {~0u}, {~0u}}, {}, {}, {}};
+        return run(ctx, src, offset + 64, p);
+    }
+
+    // Returns a copy with up to 3 float4s rewritten as in mode 1 of the CS, or nullptr.
+    ID3D11Buffer* rewrite(ID3D11DeviceContext* ctx, ID3D11Buffer* src, const RegOp (&ops)[3]) {
+        Params p = {~0u, 0, 1, 1, 1, {}, {}, {}, {}, {}};
+        UINT end = 0;
+        for (int j = 0; j < 3; ++j) {
+            const RegOp& o = ops[j];
+            p.rq[j][0] = o.off == ~0u ? ~0u : o.off / 16;
+            p.rq[j][1] = o.add_off == ~0u ? p.rq[j][0] : o.add_off / 16;
+            memcpy(p.m[j], o.mul, sizeof(p.m[j]));
+            memcpy(p.k[j], o.add_mul, sizeof(p.k[j]));
+            memcpy(p.c[j], o.add, sizeof(p.c[j]));
+            for (UINT e : {o.off, o.add_off})
+                if (e != ~0u && e + 16 > end)
+                    end = e + 16;
+        }
+        return run(ctx, src, end, p);
+    }
+
+    ID3D11Buffer* run(ID3D11DeviceContext* ctx, ID3D11Buffer* src, UINT end, Params& p) {
         D3D11_BUFFER_DESC bd;
         src->GetDesc(&bd);
-        if (offset + 64 > bd.ByteWidth || bd.ByteWidth % 16 != 0 || bd.ByteWidth > 4096 * 16)
+        if (end > bd.ByteWidth || bd.ByteWidth % 16 != 0 || bd.ByteWidth > 4096 * 16)
             return nullptr;
         ID3D11Device* device = nullptr;
         ctx->GetDevice(&device);
@@ -353,10 +525,7 @@ struct ViewProjPatch {
         device->Release();
         if (!ok)
             return nullptr;
-        struct {
-            UINT reg, count;
-            float sx, sy;
-        } p = {offset / 16, bd.ByteWidth / 16, sx, sy};
+        p.count = bd.ByteWidth / 16;
         ctx->UpdateSubresource(params, 0, nullptr, &p, 0, 0);
 
         // Save the compute bindings we touch.
@@ -396,13 +565,217 @@ struct ViewProjPatch {
     }
 };
 
-static ViewProjPatch g_viewproj_patch;
+static ViewProjPatch g_viewproj_patch, g_viewspace_patch, g_reproj_patch;  // separate: buffer sizes differ
 
-void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT count, UINT start, DrawFn original) {
-    if (!g_status.enabled) {
+// Edge padding: outside the sub-rect the linear depth targets hold 1.0 (far plane), and the sampler only clamps at
+// the texture border. Taps past the sub-rect's right/bottom edge (SSDO's offsets, the SVO trace's screen march) then
+// saw sky: unoccluded sky ambient (a blue glow along the right edge under the canopy). We replicate the last valid
+// column and row over the outside region, like a clamp at the sub-rect, with a full-target draw that discards inside.
+static const char kPadVS[] = R"(
+float4 main(uint id : SV_VertexID) : SV_Position {
+    float2 uv = float2((id << 1) & 2, id & 2);
+    return float4(uv * float2(2, -2) + float2(-1, 1), 0, 1);
+}
+)";
+static const char kPadPS[] = R"(
+Texture2D<float4> col : register(t0);  // 1 x H: column w - 1
+Texture2D<float4> row : register(t1);  // W x 1: row h - 1
+cbuffer Params : register(b0) { uint w; uint h; uint2 pad; };
+float4 main(float4 pos : SV_Position) : SV_Target {
+    uint2 p = uint2(pos.xy);
+    if (p.x < w && p.y < h)
+        discard;
+    if (p.y < h)
+        return col.Load(int3(0, p.y, 0));
+    return row.Load(int3(min(p.x, w - 1), 0, 0));
+}
+)";
+
+struct EdgePad {
+    struct Temp {
+        DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN, view = DXGI_FORMAT_UNKNOWN;
+        UINT w = 0, h = 0;
+        ID3D11Texture2D* col = nullptr;
+        ID3D11Texture2D* row = nullptr;
+        ID3D11ShaderResourceView* srv[2] = {};
+    };
+    bool failed = false;
+    ID3D11VertexShader* vs = nullptr;
+    ID3D11PixelShader* ps = nullptr;
+    ID3D11Buffer* params = nullptr;
+    Temp temps[4];
+    uint64_t padded = 0;
+
+    static ID3DBlob* compile(const char* src, size_t len, const char* target) {
+        ID3DBlob* code = nullptr;
+        ID3DBlob* errors = nullptr;
+        if (FAILED(D3DCompile(src, len, "edge_pad", nullptr, nullptr, "main", target, D3DCOMPILE_OPTIMIZATION_LEVEL3, 0,
+                              &code, &errors))) {
+            logf("screen_size_fix: edge pad %s compile failed: %s", target,
+                 errors ? static_cast<const char*>(errors->GetBufferPointer()) : "");
+            code = nullptr;
+        }
+        if (errors)
+            errors->Release();
+        return code;
+    }
+
+    bool ensure(ID3D11Device* device) {
+        if (failed)
+            return false;
+        if (ps)
+            return true;
+        ID3DBlob* vc = compile(kPadVS, sizeof(kPadVS) - 1, "vs_5_0");
+        ID3DBlob* pc = compile(kPadPS, sizeof(kPadPS) - 1, "ps_5_0");
+        D3D11_BUFFER_DESC d = {16, D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0, 0};
+        failed = !vc || !pc ||
+                 FAILED(device->CreateVertexShader(vc->GetBufferPointer(), vc->GetBufferSize(), nullptr, &vs)) ||
+                 FAILED(device->CreatePixelShader(pc->GetBufferPointer(), pc->GetBufferSize(), nullptr, &ps)) ||
+                 FAILED(device->CreateBuffer(&d, nullptr, &params));
+        if (vc)
+            vc->Release();
+        if (pc)
+            pc->Release();
+        return !failed;
+    }
+
+    Temp* temp(ID3D11Device* device, DXGI_FORMAT format, DXGI_FORMAT view, UINT w, UINT h) {
+        Temp* free_slot = nullptr;
+        for (Temp& t : temps) {
+            if (t.col && t.format == format && t.view == view && t.w == w && t.h == h)
+                return &t;
+            if (!free_slot && !t.col)
+                free_slot = &t;
+        }
+        Temp* t = free_slot ? free_slot : &temps[0];  // more than 4 kinds: recycle
+        for (ID3D11ShaderResourceView*& s : t->srv)
+            if (s)
+                s->Release(), s = nullptr;
+        if (t->col)
+            t->col->Release(), t->col = nullptr;
+        if (t->row)
+            t->row->Release(), t->row = nullptr;
+        D3D11_TEXTURE2D_DESC d = {1, h, 1, 1, format, {1, 0}, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0};
+        D3D11_SHADER_RESOURCE_VIEW_DESC sd = {};
+        sd.Format = view;
+        sd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        sd.Texture2D.MipLevels = 1;
+        bool ok = SUCCEEDED(device->CreateTexture2D(&d, nullptr, &t->col));
+        d.Width = w, d.Height = 1;
+        ok = ok && SUCCEEDED(device->CreateTexture2D(&d, nullptr, &t->row)) &&
+             SUCCEEDED(device->CreateShaderResourceView(t->col, &sd, &t->srv[0])) &&
+             SUCCEEDED(device->CreateShaderResourceView(t->row, &sd, &t->srv[1]));
+        if (!ok) {
+            logf("screen_size_fix: edge pad temps (format %d, %ux%u) failed", format, w, h);
+            if (t->col)
+                t->col->Release(), t->col = nullptr;
+            return nullptr;
+        }
+        t->format = format, t->view = view, t->w = w, t->h = h;
+        return t;
+    }
+
+    // Pads every bound PS texture that is a screen-proportional linear depth target (R32_FLOAT / R16G16_FLOAT,
+    // render-target capable), with the frame's downscale d.
+    void run(ID3D11DeviceContext* ctx, game::Vec2 d) {
+        game::Vec2 native = game::native_size();
+        if (native.x <= 0 || native.y <= 0)
+            return;
+        ID3D11ShaderResourceView* srvs[16] = {};
+        ctx->PSGetShaderResources(0, 16, srvs);
+        ID3D11Device* device = nullptr;
+        ctx->GetDevice(&device);
+        bool ready = ensure(device);
+        for (ID3D11ShaderResourceView* srv : srvs) {
+            if (!srv)
+                continue;
+            D3D11_SHADER_RESOURCE_VIEW_DESC vd;
+            srv->GetDesc(&vd);
+            ID3D11Resource* res = nullptr;
+            srv->GetResource(&res);
+            D3D11_RESOURCE_DIMENSION dim;
+            res->GetType(&dim);
+            D3D11_TEXTURE2D_DESC td = {};
+            if (dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+                static_cast<ID3D11Texture2D*>(res)->GetDesc(&td);
+            const UINT w = UINT(floorf(float(td.Width) * d.x + 0.01f)), h = UINT(floorf(float(td.Height) * d.y + 0.01f));
+            const bool depth_like = vd.Format == DXGI_FORMAT_R32_FLOAT || vd.Format == DXGI_FORMAT_R16G16_FLOAT;
+            const bool screen = td.Height > 0 && td.Width <= UINT(native.x) &&
+                                fabsf(float(td.Width) / float(td.Height) / (native.x / native.y) - 1.0f) < 0.01f;
+            if (ready && depth_like && screen && vd.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2D &&
+                vd.Texture2D.MostDetailedMip == 0 && td.SampleDesc.Count == 1 &&
+                (td.BindFlags & D3D11_BIND_RENDER_TARGET) && w > 0 && h > 0 && (w < td.Width || h < td.Height))
+                pad(ctx, device, res, td, vd.Format, w, h);
+            res->Release();
+        }
+        for (ID3D11ShaderResourceView* srv : srvs)
+            if (srv)
+                srv->Release();
+        device->Release();
+    }
+
+    void pad(ID3D11DeviceContext* ctx, ID3D11Device* device, ID3D11Resource* res, const D3D11_TEXTURE2D_DESC& td,
+             DXGI_FORMAT view, UINT w, UINT h) {
+        Temp* t = temp(device, td.Format, view, td.Width, td.Height);
+        if (!t)
+            return;
+        D3D11_RENDER_TARGET_VIEW_DESC rd = {};
+        rd.Format = view;
+        rd.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+        ID3D11RenderTargetView* rtv = nullptr;
+        if (FAILED(device->CreateRenderTargetView(res, &rd, &rtv)))
+            return;
+        D3D11_BOX col = {w - 1, 0, 0, w, h, 1}, row = {0, h - 1, 0, w, h, 1};
+        ctx->CopySubresourceRegion(t->col, 0, 0, 0, 0, res, 0, &col);
+        ctx->CopySubresourceRegion(t->row, 0, 0, 0, 0, res, 0, &row);
+        const UINT p[4] = {w, h, 0, 0};
+        ctx->UpdateSubresource(params, 0, nullptr, p, 0, 0);
+        {
+            StateBackup backup(ctx);
+            ID3D11ShaderResourceView* null_srv[2] = {};
+            ctx->PSSetShaderResources(0, 2, null_srv);  // the target may be bound as an input
+            ctx->OMSetRenderTargets(1, &rtv, nullptr);
+            ctx->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+            ctx->OMSetDepthStencilState(nullptr, 0);
+            ctx->RSSetState(nullptr);
+            D3D11_VIEWPORT vp = {0, 0, float(td.Width), float(td.Height), 0, 1};
+            ctx->RSSetViewports(1, &vp);
+            ctx->IASetInputLayout(nullptr);
+            ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            ctx->VSSetShader(vs, nullptr, 0);
+            ctx->GSSetShader(nullptr, nullptr, 0);
+            ctx->HSSetShader(nullptr, nullptr, 0);
+            ctx->DSSetShader(nullptr, nullptr, 0);
+            ctx->PSSetShader(ps, nullptr, 0);
+            ctx->PSSetShaderResources(0, 2, t->srv);
+            ctx->PSSetConstantBuffers(0, 1, &params);
+            draw_fn(ctx, 3, 0);
+        }
+        rtv->Release();
+        ++padded;
+    }
+
+    DrawFn draw_fn = nullptr;
+};
+
+static EdgePad g_edge_pad;
+
+static void pad_depth_inputs(ID3D11DeviceContext* ctx, DrawFn original) {
+    game::Vec2 d = game::current_downscale();
+    if (!(d.x < 0.999f || d.y < 0.999f))
+        return;
+    g_edge_pad.draw_fn = original;
+    g_edge_pad.run(ctx, d);
+    g_status.edge_padded = g_edge_pad.padded;
+}
+
+void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* /*vs*/, UINT count, UINT start, DrawFn original) {
+    if (!g_status.enabled || ps.kind == Shader::DofPS || ps.kind == Shader::DofGatherPS) {
         original(ctx, count, start);
         return;
     }
+    if (ps.kind == Shader::ViewProjPS || (ps.kind == Shader::ViewSpacePS && !ps.radius_xy_only))
+        pad_depth_inputs(ctx, original);
     if (ps.kind == Shader::ViewProjPS) {
         game::Vec2 d = game::current_downscale();
         ID3D11Buffer* cb = nullptr;
@@ -420,22 +793,45 @@ void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT cou
             cb->Release();
         return;
     }
-    if (ps.kind == Shader::LumInitialPS) {
-        g_lum_source = ps_resource(ctx, 0);
+    if (ps.kind == Shader::ViewSpacePS || ps.kind == Shader::ReprojPS) {
         game::Vec2 d = game::current_downscale();
         ID3D11Buffer* cb = nullptr;
-        if (vs && (d.x < 0.999f || d.y < 0.999f))
-            ctx->VSGetConstantBuffers(vs->cb_slot, 1, &cb);
-        ID3D11Buffer* b = cb ? g_vs_patch.make(ctx, cb, vs->offset, d.x, d.y) : nullptr;
+        if (d.x < 0.999f || d.y < 0.999f)
+            ctx->PSGetConstantBuffers(ps.cb_slot, 1, &cb);
+        RegOp ops[3];
+        if (ps.kind == Shader::ViewSpacePS) {
+            ops[0].off = ps.offset;
+            const float view[4] = {1.0f / d.x, 1.0f / d.y, 1, 1};
+            memcpy(ops[0].mul, view, sizeof(view));
+            ops[1].off = ps.radius_offset;
+            const float radius[4] = {d.x, d.y, ps.radius_xy_only ? 1.0f : d.x, ps.radius_xy_only ? 1.0f : d.x};
+            memcpy(ops[1].mul, radius, sizeof(radius));
+        } else {
+            // prev = (M * (uv, 1, w)).xy / row2: input uv = uv'/s (columns x, y * 1/s), output * s (rows 0, 1).
+            const float m[3][4] = {{1, d.x / d.y, d.x, d.x}, {d.y / d.x, 1, d.y, d.y}, {1 / d.x, 1 / d.y, 1, 1}};
+            for (int j = 0; j < 3; ++j) {
+                ops[j].off = ps.offset + 16 * j;
+                memcpy(ops[j].mul, m[j], sizeof(m[j]));
+            }
+        }
+        ID3D11Buffer* b = cb ? (ps.kind == Shader::ViewSpacePS ? g_viewspace_patch : g_reproj_patch).rewrite(ctx, cb, ops)
+                             : nullptr;
         if (b) {
-            ctx->VSSetConstantBuffers(vs->cb_slot, 1, &b);
+            ctx->PSSetConstantBuffers(ps.cb_slot, 1, &b);
             ++g_status.ps_fixed;
         }
         original(ctx, count, start);
         if (b)
-            ctx->VSSetConstantBuffers(vs->cb_slot, 1, &cb);
+            ctx->PSSetConstantBuffers(ps.cb_slot, 1, &cb);
         if (cb)
             cb->Release();
+        return;
+    }
+    if (ps.kind == Shader::LumInitialPS) {
+        // Only remembered as the bloom's source. Its quad already gets sub-rect UVs from the engine (0..s, A/B diff
+        // kcd_frame19102 vs 20786); patching g_VS_HPosScale too made it read the top-left s^2 (wrong exposure).
+        g_lum_source = ps_resource(ctx, 0);
+        original(ctx, count, start);
         return;
     }
     game::Vec2 scale = game::current_viewport_scale();
@@ -467,6 +863,88 @@ void draw(ID3D11DeviceContext* ctx, const Shader& ps, const Shader* vs, UINT cou
         cb->Release();
     if (zmap)
         zmap->Release();
+}
+
+bool draw_dof(ID3D11DeviceContext* ctx, const Shader* ps, const Shader* vs, UINT count, UINT start, DrawFn original) {
+    const bool dof = (ps && (ps->kind == Shader::DofPS || ps->kind == Shader::DofGatherPS)) ||
+                     (vs && vs->kind == Shader::DofVS);
+    if (!g_status.enabled || !dof || !game::inside_engine_region_tri())
+        return false;
+    game::Vec2 d = game::current_downscale();
+    D3D11_VIEWPORT vp;
+    UINT n = 1, w = 0, h = 0;
+    ctx->RSGetViewports(&n, &vp);
+    if (n == 0 || !target_size(ctx, &w, &h))
+        return false;
+    bool covers = vp.TopLeftX == 0 && vp.TopLeftY == 0 && vp.Width >= float(w) - 0.5f && vp.Height >= float(h) - 0.5f;
+    game::Vec2 native = game::native_size();
+    float aspect = float(w) / float(h), screen = native.y > 0 ? native.x / native.y : 0;
+    if (!covers || screen <= 0 || fabsf(aspect / screen - 1.0f) >= 0.01f)
+        return false;
+    D3D11_VIEWPORT sub = vp;
+    sub.Width = floorf(vp.Width * d.x + 0.5f);
+    sub.Height = floorf(vp.Height * d.y + 0.5f);
+    ctx->RSSetViewports(1, &sub);
+    ID3D11Buffer* cb = nullptr;
+    ID3D11Buffer* b = nullptr;
+    if (ps && ps->kind == Shader::DofGatherPS) {
+        ctx->PSGetConstantBuffers(ps->cb_slot, 1, &cb);
+        b = cb ? g_ps_patch.make(ctx, cb, ps->offset, vp.Width * d.x, vp.Height * d.y) : nullptr;
+        if (b) {
+            ctx->PSSetConstantBuffers(ps->cb_slot, 1, &b);
+            ++g_status.ps_fixed;
+        }
+    }
+    original(ctx, count, start);
+    if (b)
+        ctx->PSSetConstantBuffers(ps->cb_slot, 1, &cb);
+    if (cb)
+        cb->Release();
+    ctx->RSSetViewports(1, &vp);
+    ++g_status.dof_shrunk;
+    return true;
+}
+
+static ViewProjPatch g_tiled_patch;
+
+void dispatch(ID3D11DeviceContext* ctx, const Shader& cs, UINT x, UINT y, UINT z, DispatchFn original) {
+    game::Vec2 d = game::current_downscale();
+    game::Vec2 full = game::native_size();
+    ID3D11Buffer* cb = nullptr;
+    if (g_status.enabled && cs.kind == Shader::TiledShadingCS && (d.x < 0.999f || d.y < 0.999f) && full.x > 0 &&
+        full.y > 0)
+        ctx->CSGetConstantBuffers(cs.cb_slot, 1, &cb);
+    ID3D11Buffer* b = nullptr;
+    if (cb) {
+        RegOp ops[3];
+        // View rays: TR' = TR / s.x + TL * (1 - 1 / s.x), BL' likewise with s.y.
+        ops[0].off = cs.tiled[0];
+        ops[1].off = cs.tiled[1];
+        for (int c = 0; c < 4; ++c) {
+            ops[0].mul[c] = 1.0f / d.x;
+            ops[1].mul[c] = 1.0f / d.y;
+            ops[0].add_mul[c] = 1.0f - 1.0f / d.x;
+            ops[1].add_mul[c] = 1.0f - 1.0f / d.y;
+        }
+        ops[0].add_off = ops[1].add_off = cs.offset;
+        // Tile planes: scale (T / 2) * ProjParams.xy and centre (T / 2 - group) + ProjParams.zw, T = ceil(size / 8);
+        // the sub-rect wants n = size * s / 8 tiles: xy * n / T, zw + (n - T) / 2.
+        float tx = ceilf(full.x / 8), ty = ceilf(full.y / 8), nx = full.x * d.x / 8, ny = full.y * d.y / 8;
+        ops[2].off = cs.tiled[2];
+        const float pm[4] = {nx / tx, ny / ty, 1, 1}, pa[4] = {0, 0, (nx - tx) / 2, (ny - ty) / 2};
+        memcpy(ops[2].mul, pm, sizeof(pm));
+        memcpy(ops[2].add, pa, sizeof(pa));
+        b = g_tiled_patch.rewrite(ctx, cb, ops);
+        if (b) {
+            ctx->CSSetConstantBuffers(cs.cb_slot, 1, &b);
+            ++g_status.ps_fixed;
+        }
+    }
+    original(ctx, x, y, z);
+    if (b)
+        ctx->CSSetConstantBuffers(cs.cb_slot, 1, &cb);
+    if (cb)
+        cb->Release();
 }
 
 bool draw_bloom_source(ID3D11DeviceContext* ctx, const Shader& vs, UINT count, UINT start, DrawFn original) {

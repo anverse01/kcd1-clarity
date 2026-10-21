@@ -78,7 +78,7 @@ static const RECT* scaled_region(int w, int h, const RECT* src, RECT* out) {
     return out;
 }
 
-static thread_local bool t_scaled_tri, t_redo;
+static thread_local bool t_scaled_tri, t_redo, t_engine_region;
 
 Vec2 current_downscale() {
     uintptr_t r = sym::addr(sym::Id::gRenDev);
@@ -91,14 +91,20 @@ Vec2 native_size() {
 }
 
 bool inside_scaled_fullscreen_tri() { return t_scaled_tri; }
+bool inside_engine_region_tri() { return t_engine_region; }
 void redo_fullscreen_tri_unscaled() { t_redo = true; }
 
 template <typename Fn>
 static int64_t draw_tri(Fn original, int w, int h, float z, const RECT* src) {
     RECT rc;
     const RECT* region = scaled_region(w, h, src, &rc);
-    if (region != &rc)
-        return original(w, h, z, src);
+    if (region != &rc) {
+        Vec2 d = current_downscale();
+        t_engine_region = src && (d.x < 0.999f || d.y < 0.999f);
+        int64_t r = original(w, h, z, src);
+        t_engine_region = false;
+        return r;
+    }
     t_scaled_tri = true;
     t_redo = false;
     int64_t r = original(w, h, z, region);
@@ -118,6 +124,27 @@ static int64_t __fastcall hk_draw_fullscreen_tri_wpos(int w, int h, float z, con
     return draw_tri(o_draw_fullscreen_tri_wpos, w, h, z, src);
 }
 
+// CSunShafts::IsVisible(this): with r_sunshafts > 1 it keeps the shafts only while the sun occlusion query's visible
+// samples (this+28, from an earlier frame) exceed 1% of the full-size scene target. The query is a full-screen
+// triangle, which our region fix draws into the sub-rect: s^2 fewer samples, so below scale 1 the shafts (the warm
+// sunlight through foliage) vanished. Scale the count back to full-target terms before the test.
+constexpr uintptr_t kSunShaftsVisSamples = 28;
+using SunShaftsIsVisibleFn = bool(__fastcall*)(void* self);
+static SunShaftsIsVisibleFn o_sun_shafts_is_visible;
+
+static bool __fastcall hk_sun_shafts_is_visible(void* self) {
+    uintptr_t r = sym::addr(sym::Id::gRenDev);
+    if (r && g_probe.fix_fullscreen_uv) {
+        Vec2 s = field<Vec2>(r, kViewportScale);
+        float area = s.x * s.y;
+        if (area > 0.01f && area < 0.999f) {
+            int* samples = reinterpret_cast<int*>(reinterpret_cast<uintptr_t>(self) + kSunShaftsVisSamples);
+            *samples = static_cast<int>(*samples / area);
+        }
+    }
+    return o_sun_shafts_is_visible(self);
+}
+
 static void hook(sym::Id id, const char* name, void* detour, void** original) {
     void* target = reinterpret_cast<void*>(sym::addr(id));
     if (!target) {
@@ -134,6 +161,8 @@ void install_hooks() {
          reinterpret_cast<void*>(&hk_draw_fullscreen_tri), reinterpret_cast<void**>(&o_draw_fullscreen_tri));
     hook(sym::Id::SD3DPostEffectsUtils__DrawFullScreenTriWPOS, "DrawFullScreenTriWPOS",
          reinterpret_cast<void*>(&hk_draw_fullscreen_tri_wpos), reinterpret_cast<void**>(&o_draw_fullscreen_tri_wpos));
+    hook(sym::Id::CSunShafts__IsVisible, "CSunShafts::IsVisible", reinterpret_cast<void*>(&hk_sun_shafts_is_visible),
+         reinterpret_cast<void**>(&o_sun_shafts_is_visible));
 }
 
 uint64_t fullscreen_uv_fixes() { return g_uv_fixes; }

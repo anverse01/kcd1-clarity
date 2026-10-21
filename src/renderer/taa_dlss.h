@@ -19,6 +19,10 @@ enum class Mode { Engine = 0, Dlss = 1 };
 struct Settings {
     Mode mode = Mode::Engine;
     float render_scale = 1.0f;  // scene render size / output size: 1 = DLAA, 0.667 Quality, 0.58, 0.5, 0.333
+    bool mip_bias = true;       // texture LOD bias log2(render_scale) + mip_bias_offset while DLSS runs
+    float mip_bias_offset = 0.0f;  // added to log2(render_scale); negative = sharper textures, more shimmer
+    bool coarse_shadow_noise = true;  // renderer/shadow_noise: lower noise frequency below scale 0.5
+    bool temporal_shadow_noise = true;  // renderer/shadow_noise: rotate the shadow filter noise every frame
     bool force_halton = true;   // r_AntialiasingTAAPattern 8 (Halton 2,3 over 1024 frames) while DLSS is on
     bool jitter_flip_x = true;  // confirmed in game 2026-10-15: DLSS jitter = (-x, +y) of gRenDev+0xF20
     bool jitter_flip_y = false;

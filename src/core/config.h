@@ -15,6 +15,12 @@ struct Config {
     bool show_fps = false;     // small FPS readout while the overlay is closed
     int dlss_quality = 0;      // [dlss] quality: 0 DLAA, 1 Quality, 2 Balanced, 3 Performance, 4 Ultra Performance
     int dlss_preset = 0;       // [dlss] preset: NGX render preset, 0 = DLSS default, 10-13 = J-M
+    bool mip_bias = true;      // [dlss] mip_bias: texture LOD bias log2(render scale) + mip_bias_offset
+    float mip_bias_offset = 0; // [dlss] mip_bias_offset
+    bool velocity16 = true;    // [dlss] velocity16: object motion vectors at 16 bits (restart to change)
+    bool coarse_shadow_noise = true;  // [dlss] coarse_shadow_noise: lower shadow noise frequency below scale 0.5
+    bool temporal_shadow_noise = true;  // [dlss] temporal_shadow_noise: shadow filter noise rotated every frame
+    bool edge_clamp = true;    // [dlss] edge_clamp: replicate the sub-rect's edge outside it (no light leaks)
     bool d3d_debug = false;    // [debug] d3d_debug: D3D11 debug layer, messages to the mod log (slow)
     // [debug] black-screen bisection, also in the F3 window
     bool skip_ngx = false;      // skip_ngx: run the DLSS path without NGX (works under RenderDoc)

@@ -1,5 +1,7 @@
 #include "core/config.h"
 
+#include <cstdio>
+#include <cwchar>
 #include <string>
 
 #include "core/log.h"
@@ -26,6 +28,16 @@ void config_load(const std::wstring& path) {
     g_config.show_fps = GetPrivateProfileIntW(L"ui", L"show_fps", g_config.show_fps, f) != 0;
     g_config.dlss_quality = GetPrivateProfileIntW(L"dlss", L"quality", g_config.dlss_quality, f);
     g_config.dlss_preset = GetPrivateProfileIntW(L"dlss", L"preset", g_config.dlss_preset, f);
+    g_config.mip_bias = GetPrivateProfileIntW(L"dlss", L"mip_bias", g_config.mip_bias, f) != 0;
+    wchar_t buf[32];
+    GetPrivateProfileStringW(L"dlss", L"mip_bias_offset", L"", buf, 32, f);
+    if (buf[0])
+        g_config.mip_bias_offset = wcstof(buf, nullptr);
+    g_config.velocity16 = GetPrivateProfileIntW(L"dlss", L"velocity16", g_config.velocity16, f) != 0;
+    g_config.coarse_shadow_noise = GetPrivateProfileIntW(L"dlss", L"coarse_shadow_noise", g_config.coarse_shadow_noise, f) != 0;
+    g_config.temporal_shadow_noise =
+        GetPrivateProfileIntW(L"dlss", L"temporal_shadow_noise", g_config.temporal_shadow_noise, f) != 0;
+    g_config.edge_clamp = GetPrivateProfileIntW(L"dlss", L"edge_clamp", g_config.edge_clamp, f) != 0;
     g_config.d3d_debug = GetPrivateProfileIntW(L"debug", L"d3d_debug", g_config.d3d_debug, f) != 0;
     g_config.skip_ngx = GetPrivateProfileIntW(L"debug", L"skip_ngx", g_config.skip_ngx, f) != 0;
     g_config.engine_after = GetPrivateProfileIntW(L"debug", L"engine_after", g_config.engine_after, f) != 0;
@@ -47,6 +59,14 @@ void config_save() {
     WritePrivateProfileStringW(L"ui", L"show_fps", g_config.show_fps ? L"1" : L"0", f);
     WritePrivateProfileStringW(L"dlss", L"quality", std::to_wstring(g_config.dlss_quality).c_str(), f);
     WritePrivateProfileStringW(L"dlss", L"preset", std::to_wstring(g_config.dlss_preset).c_str(), f);
+    WritePrivateProfileStringW(L"dlss", L"mip_bias", g_config.mip_bias ? L"1" : L"0", f);
+    wchar_t buf[32];
+    swprintf(buf, 32, L"%.2f", g_config.mip_bias_offset);
+    WritePrivateProfileStringW(L"dlss", L"mip_bias_offset", buf, f);
+    WritePrivateProfileStringW(L"dlss", L"velocity16", g_config.velocity16 ? L"1" : L"0", f);
+    WritePrivateProfileStringW(L"dlss", L"coarse_shadow_noise", g_config.coarse_shadow_noise ? L"1" : L"0", f);
+    WritePrivateProfileStringW(L"dlss", L"temporal_shadow_noise", g_config.temporal_shadow_noise ? L"1" : L"0", f);
+    WritePrivateProfileStringW(L"dlss", L"edge_clamp", g_config.edge_clamp ? L"1" : L"0", f);
     WritePrivateProfileStringW(L"debug", L"d3d_debug", g_config.d3d_debug ? L"1" : L"0", f);
     WritePrivateProfileStringW(L"debug", L"skip_ngx", g_config.skip_ngx ? L"1" : L"0", f);
     WritePrivateProfileStringW(L"debug", L"engine_after", g_config.engine_after ? L"1" : L"0", f);

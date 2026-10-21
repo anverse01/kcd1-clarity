@@ -9,8 +9,11 @@
 
 #include "core/log.h"
 #include "game/renderer.h"
+#include "renderer/canary.h"
 #include "renderer/frame_dump.h"
+#include "renderer/shadow_noise.h"
 #include "renderer/taa_dlss.h"
+#include "renderer/velocity_mask.h"
 #include "ui/overlay.h"
 
 namespace kc {
@@ -29,7 +32,10 @@ static HRESULT STDMETHODCALLTYPE hk_present(IDXGISwapChain* swapchain, UINT sync
     if (!(flags & DXGI_PRESENT_TEST)) {
         frame_dump::on_present(swapchain);  // before the overlay draws
         game::on_present();
+        canary::on_present();
         taa_dlss::on_present();
+        velocity_mask::on_present();
+        shadow_noise::on_present(swapchain);
         overlay::on_present(swapchain);
     }
     HRESULT hr = o_present(swapchain, sync, flags);

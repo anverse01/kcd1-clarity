@@ -79,7 +79,12 @@ add_library(kcd_clarity SHARED
     src/game/symbols.cpp
     src/hooks/d3d11_hooks.cpp
     src/hooks/present.cpp
+    src/renderer/canary.cpp
     src/renderer/frame_dump.cpp
+    src/renderer/mip_bias.cpp
+    src/renderer/shadow_noise.cpp
+    src/renderer/velocity_format.cpp
+    src/renderer/velocity_mask.cpp
     src/renderer/screen_size_fix.cpp
     src/renderer/state_backup.cpp
     src/renderer/taa_dlss.cpp

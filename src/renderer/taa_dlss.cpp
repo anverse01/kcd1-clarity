@@ -5,6 +5,7 @@
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
 
+#include <cmath>
 #include <cstring>
 #include <optional>
 
@@ -12,7 +13,10 @@
 #include "game/renderer.h"
 #include "game/symbols.h"
 #include "renderer/frame_dump.h"
+#include "renderer/mip_bias.h"
+#include "renderer/shadow_noise.h"
 #include "renderer/state_backup.h"
+#include "renderer/velocity_mask.h"
 #include "upscaler/dlss.h"
 
 namespace kc::taa_dlss {
@@ -33,6 +37,7 @@ static const char kPrepareCS[] = R"(
 Texture2D<float4> InColour : register(t0);
 Texture2D<float>  InDepth  : register(t1);
 Texture2D<float2> InVel    : register(t2);
+Texture2D<float>  VelDepth : register(t3);  // depth right after the moving objects (velocity_mask)
 cbuffer Engine : register(b0) { float4 E[256]; };  // the engine's constant buffer with mReprojection
 cbuffer Params : register(b1) {
     uint  ReprojReg;   // float4 register of mReprojection in Engine
@@ -40,6 +45,8 @@ cbuffer Params : register(b1) {
     float2 InvTarget;  // 1 / target texture size: the engine's baseTC is normalized to the whole texture
     uint2 RenderSize;
     float2 MvSign;
+    float2 Scale;      // render size / target size: the sub-rect the scene occupies
+    uint  VelMask;     // VelDepth is valid: object velocity only where the depth is still the moving object's
 };
 RWTexture2D<float4> OutColour : register(u0);
 RWTexture2D<float>  OutDepth  : register(u1);
@@ -57,17 +64,23 @@ void main(uint2 id : SV_DispatchThreadID) {
     int3 p = int3(id, 0);
     float depth = InDepth.Load(p);
     float2 tc = (float2(id) + 0.5) * InvTarget;
+    // mReprojection is built for full-view UVs (CPostAA::Render has no HPosScale term), so camera motion is
+    // reprojected at tc / Scale and brought back to sub-rect units. Object velocities are already in sub-rect
+    // units (HPosToScreenTC scales them).
+    float2 uv = tc / Scale;
     // Sky / far plane: the reprojection's w goes to 0 there. The engine's TAA shrugs off the resulting Inf/NaN
     // (treated as offscreen); DLSS spreads it through its history, so keep the depth off the exact limits and
     // drop any non-finite or absurd vector.
-    float4 v = float4(tc, clamp(depth, 1e-6, 1.0 - 1e-6), 1.0);
+    float4 v = float4(uv, clamp(depth, 1e-6, 1.0 - 1e-6), 1.0);
     float4 h;
     if (RowMajor)
         h = v.x * E[ReprojReg] + v.y * E[ReprojReg + 1] + v.z * E[ReprojReg + 2] + v.w * E[ReprojReg + 3];
     else
         h = float4(dot(v, E[ReprojReg]), dot(v, E[ReprojReg + 1]), dot(v, E[ReprojReg + 2]), dot(v, E[ReprojReg + 3]));
     float2 obj = InVel.Load(p);
-    float2 mv = (obj.x == 0.0) ? h.xy / h.w - tc : DecodeMotionVector(obj);
+    if (VelMask && VelDepth.Load(p) != InDepth.Load(p))
+        obj = 0.0;  // covered by something drawn later (static geometry never writes velocity)
+    float2 mv = (obj.x == 0.0) ? (h.xy / h.w - uv) * Scale : DecodeMotionVector(obj);
     if (any(isnan(mv)) || any(isinf(mv)) || abs(h.w) < 1e-8 || any(abs(mv) > 2.0))
         mv = 0.0;
     OutMv[id] = mv * MvSign;
@@ -88,13 +101,21 @@ Texture2D<float4> Src    : register(t0);  // DLSS output
 Texture2D<float4> Colour : register(t1);  // DLSS colour input
 Texture2D<float2> Mv     : register(t2);
 Texture2D<float>  Depth  : register(t3);
-cbuffer View : register(b0) { uint Mode; float MvGain; float2 Pad; };
+cbuffer View : register(b0) { uint Mode; float MvGain; float2 Scale; };  // Scale: render / target size
 bool bad(float4 v) { return any(isnan(v)) || any(isinf(v)); }
 float4 main(float4 pos : SV_Position) : SV_Target {
-    int3 p = int3(pos.xy, 0);
+    // The inputs hold the frame in their top-left (Scale) part: debug views stretch it over the target,
+    // the colour input bilinearly (stands in for DLSS with Skip NGX, e.g. under RenderDoc). The DLSS output
+    // is already full size and is read 1:1.
+    float2 src = pos.xy * Scale - 0.5;
+    int3 p = int3(pos.xy * Scale, 0);
     float3 c;
     if (Mode == 1) {            // colour input
-        c = Colour.Load(p).rgb;
+        int2 i = int2(floor(src));
+        float2 f = src - floor(src);
+        c = lerp(lerp(Colour.Load(int3(max(i, 0), 0)).rgb, Colour.Load(int3(max(i + int2(1, 0), 0), 0)).rgb, f.x),
+                 lerp(Colour.Load(int3(max(i + int2(0, 1), 0), 0)).rgb, Colour.Load(int3(max(i + 1, 0), 0)).rgb, f.x),
+                 f.y);
     } else if (Mode == 2) {     // motion vectors: x red, y green (signed, gained), NaN magenta
         float2 m = Mv.Load(p);
         if (bad(m.xyxy)) return float4(1, 0, 1, 0);
@@ -103,7 +124,7 @@ float4 main(float4 pos : SV_Position) : SV_Target {
     } else if (Mode == 3) {     // depth
         c = Depth.Load(p).xxx;
     } else {                    // DLSS output, NaN/Inf magenta
-        float4 o = Src.Load(p);
+        float4 o = Src.Load(int3(pos.xy, 0));
         if (bad(o)) return float4(1, 0, 1, 0);
         c = o.rgb;
     }
@@ -150,7 +171,7 @@ static bool ensure_shaders(ID3D11Device* device) {
             b->Release();
 
     D3D11_BUFFER_DESC bd{};
-    bd.ByteWidth = 32;
+    bd.ByteWidth = 48;
     bd.Usage = D3D11_USAGE_DYNAMIC;
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -222,11 +243,13 @@ static bool ensure_textures(ID3D11Device* device, UINT w, UINT h) {
 
 // ---------------------------------------------------------------------------------------------------------
 
-// Render scale in use: only below 1 while DLSS is on and can run, else the engine's own chain would show the
-// small sub-rect (it has no upscale on PC).
+// Render scale in use: only below 1 while DLSS is on and can run (or Skip NGX stands in for it), else the engine's
+// own chain would show the small sub-rect (it has no upscale on PC).
 static float wanted_scale() {
-    if (g_settings.mode != Mode::Dlss || g_settings.skip_ngx)
+    if (g_settings.mode != Mode::Dlss)
         return 1.0f;
+    if (g_settings.skip_ngx)  // no DLSS (e.g. RenderDoc): the write-back stretches the sub-rect instead
+        return g_settings.render_scale;
     const dlss::Status& d = dlss::status();
     if (d.init_tried && !d.available)
         return 1.0f;
@@ -261,6 +284,12 @@ struct CvarOverride {
 void on_present() {
     float scale = wanted_scale();
     game::set_downscale(scale);
+    bool dlss_on = g_settings.mode == Mode::Dlss && (g_settings.skip_ngx || dlss::status().available);
+    mip_bias::set_bias(dlss_on && g_settings.mip_bias ? log2f(scale) + g_settings.mip_bias_offset : 0.0f);
+    shadow_noise::set_active(dlss_on && g_settings.temporal_shadow_noise);
+    // Keep the noise no finer than at scale 0.5 (fine there per user tests): k = ceil(0.5 / scale).
+    shadow_noise::set_coarseness(dlss_on && g_settings.coarse_shadow_noise && scale < 0.5f
+                                     ? static_cast<int>(ceilf(0.5f / scale - 0.01f)) : 1);
     // PackVelocitiesPS mixes scaled and full-screen UVs in the sub-rect path (zoom blur), kcd-re notes/20-resolution.md.
     static CvarOverride motion_blur{sym::Id::CV_r_MotionBlur, "r_MotionBlur"};
     motion_blur.apply(scale < 1.0f, 0);
@@ -371,6 +400,7 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
     ds.is_hdr = true;  // colour is linear (sRGB view of the SMAA output), in [0, 1]
     ds.depth_inverted = g_settings.depth_mode == 2 || (g_settings.depth_mode == 0 && g_status.reverse_depth > 0);
 
+    ID3D11ShaderResourceView* vel_depth = velocity_mask::depth_copy();
     // Params for the prepare pass.
     D3D11_MAPPED_SUBRESOURCE m;
     if (FAILED(ctx->Map(g_params, 0, D3D11_MAP_WRITE_DISCARD, 0, &m))) {
@@ -382,14 +412,20 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
         float inv_target[2];
         UINT render[2];
         float mv_sign[2];
+        float scale[2];
+        UINT vel_mask;
+        float pad;
     } params = {taa.reproj_offset / 16, taa.reproj_row_major ? 1u : 0u,
                 {1.0f / td.Width, 1.0f / td.Height}, {render_w, render_h},
-                {g_settings.mv_flip_x ? -1.0f : 1.0f, g_settings.mv_flip_y ? -1.0f : 1.0f}};
+                {g_settings.mv_flip_x ? -1.0f : 1.0f, g_settings.mv_flip_y ? -1.0f : 1.0f},
+                {static_cast<float>(render_w) / td.Width, static_cast<float>(render_h) / td.Height},
+                vel_depth ? 1u : 0u, 0};
     memcpy(m.pData, &params, sizeof(params));
     ctx->Unmap(g_params, 0);
     if (SUCCEEDED(ctx->Map(g_view_params, 0, D3D11_MAP_WRITE_DISCARD, 0, &m))) {
         UINT view_mode = g_settings.skip_ngx && g_settings.debug_view == 0 ? 1u : static_cast<UINT>(g_settings.debug_view);
-        struct { UINT mode; float mv_gain; float pad[2]; } view = {view_mode, 50.0f, {}};
+        struct { UINT mode; float mv_gain; float scale[2]; } view = {
+            view_mode, 50.0f, {static_cast<float>(render_w) / td.Width, static_cast<float>(render_h) / td.Height}};
         memcpy(m.pData, &view, sizeof(view));
         ctx->Unmap(g_view_params, 0);
     }
@@ -428,18 +464,18 @@ bool on_taa_draw(ID3D11DeviceContext* ctx, const d3d11::TaaShader& taa) {
     }
 
     // 1. Colour/depth copies and full-screen motion vectors.
-    ID3D11ShaderResourceView* srvs[3] = {b.colour, b.depth, b.velocity};
+    ID3D11ShaderResourceView* srvs[4] = {b.colour, b.depth, b.velocity, vel_depth};
     ID3D11UnorderedAccessView* uavs[3] = {g_colour.uav, g_depth.uav, g_mv.uav};
     ID3D11Buffer* cbs[2] = {b.cb, g_params};
     ctx->CSSetShader(g_prepare_cs, nullptr, 0);
-    ctx->CSSetShaderResources(0, 3, srvs);
+    ctx->CSSetShaderResources(0, 4, srvs);
     ctx->CSSetUnorderedAccessViews(0, 3, uavs, nullptr);
     ctx->CSSetConstantBuffers(0, 2, cbs);
     ctx->Dispatch((render_w + 7) / 8, (render_h + 7) / 8, 1);
-    ID3D11ShaderResourceView* null_srvs[3] = {};
+    ID3D11ShaderResourceView* null_srvs[4] = {};
     ID3D11UnorderedAccessView* null_uavs[3] = {};
     ID3D11Buffer* null_cbs[2] = {};
-    ctx->CSSetShaderResources(0, 3, null_srvs);
+    ctx->CSSetShaderResources(0, 4, null_srvs);
     ctx->CSSetUnorderedAccessViews(0, 3, null_uavs, nullptr);
     ctx->CSSetConstantBuffers(0, 2, null_cbs);
 

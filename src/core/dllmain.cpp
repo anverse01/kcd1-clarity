@@ -22,7 +22,9 @@
 #include "game/symbols.h"
 #include "hooks/d3d11_hooks.h"
 #include "hooks/present.h"
+#include "renderer/canary.h"
 #include "renderer/taa_dlss.h"
+#include "renderer/velocity_format.h"
 
 namespace kc {
 
@@ -58,6 +60,12 @@ static DWORD WINAPI init_thread(LPVOID) {
     taa_dlss::settings().force_halton = config().force_halton;
     taa_dlss::settings().state_swap = config().state_swap;
     taa_dlss::settings().render_scale = render_scale_for(config().dlss_quality);
+    taa_dlss::settings().mip_bias = config().mip_bias;
+    taa_dlss::settings().mip_bias_offset = config().mip_bias_offset;
+    taa_dlss::settings().temporal_shadow_noise = config().temporal_shadow_noise;
+    taa_dlss::settings().coarse_shadow_noise = config().coarse_shadow_noise;
+    canary::settings().clamp = config().edge_clamp;
+    velocity_format::set_enabled(config().velocity16);
 
     if (MH_Initialize() != MH_OK) {
         logf("MH_Initialize failed");

@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <iterator>
 #include <mutex>
 #include <vector>
@@ -32,7 +33,12 @@
 #include "game/symbols.h"
 #include "hooks/d3d11_hooks.h"
 #include "renderer/frame_dump.h"
+#include "renderer/mip_bias.h"
+#include "renderer/canary.h"
 #include "renderer/screen_size_fix.h"
+#include "renderer/shadow_noise.h"
+#include "renderer/velocity_format.h"
+#include "renderer/velocity_mask.h"
 #include "renderer/taa_dlss.h"
 #include "upscaler/dlss.h"
 #include "ui/input.h"
@@ -331,6 +337,35 @@ static void draw_dlss_section() {
     ImGui::SameLine();
     ImGui::TextDisabled("scale %.3f, engine downscale (%.3f, %.3f)", s.render_scale, snap.downscale_cur.x,
                         snap.downscale_cur.y);
+    if (ImGui::Checkbox("Texture mip bias", &s.mip_bias)) {
+        config().mip_bias = s.mip_bias;
+        config_save();
+    }
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(160);
+    if (ImGui::SliderFloat("offset", &s.mip_bias_offset, -1.5f, 1.5f, "%+.2f")) {
+        config().mip_bias_offset = s.mip_bias_offset;
+        config_save();
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("bias %+.2f (log2 scale %+.2f), %u biased samplers", mip_bias::bias(), log2f(s.render_scale),
+                        mip_bias::status().clones);
+    if (ImGui::Checkbox("Coarser shadow noise below 50%", &s.coarse_shadow_noise)) {
+        config().coarse_shadow_noise = s.coarse_shadow_noise;
+        config_save();
+    }
+    ImGui::SameLine();
+    if (ImGui::Checkbox("Temporal shadow noise", &s.temporal_shadow_noise)) {
+        config().temporal_shadow_noise = s.temporal_shadow_noise;
+        config_save();
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("noise texture %s; motion vectors %s", shadow_noise::found() ? "found" : "not found",
+                        velocity_format::promoted() ? "16-bit" : "8-bit (velocity16 off or restart needed)");
+    ImGui::Checkbox("Drop occluded object velocities", &velocity_mask::status().enabled);
+    ImGui::SameLine();
+    ImGui::TextDisabled("%llu depth copies, %llu cleanups", (unsigned long long)velocity_mask::status().snapshots,
+                        (unsigned long long)velocity_mask::status().cleanups);
     if (snap.valid && snap.aa_mode_active != 3)
         ImGui::TextColored(kWarn, "Anti-aliasing is not SMAA 2TX (r_AntialiasingMode 3): the TAA pass does not run");
 
@@ -439,12 +474,44 @@ static void draw_probe_section() {
     const screen_size_fix::Status& fs = screen_size_fix::status();
     ImGui::Checkbox("Fix fog depth + self-scaling VS", &screen_size_fix::status().enabled);
     ImGui::SameLine();
-    ImGui::TextDisabled("fog/lum PS %u (%llu), VS %u (%llu), shrunk %llu, non-screen %llu, bloom %llu", fs.ps_seen,
-                        (unsigned long long)fs.ps_fixed, fs.vs_seen, (unsigned long long)fs.vs_fixed,
+    ImGui::TextDisabled("fog/lum PS %u (%llu), VS %u (%llu), shrunk %llu, non-screen %llu, bloom %llu, DOF %llu, edge pad %llu",
+                        fs.ps_seen, (unsigned long long)fs.ps_fixed, fs.vs_seen, (unsigned long long)fs.vs_fixed,
                         (unsigned long long)fs.shrunk, (unsigned long long)fs.non_screen,
-                        (unsigned long long)fs.bloom_fixed);
+                        (unsigned long long)fs.bloom_fixed, (unsigned long long)fs.dof_shrunk,
+                        (unsigned long long)fs.edge_padded);
     ImGui::SameLine();
     ImGui::TextDisabled("%llu draws fixed", (unsigned long long)game::fullscreen_uv_fixes());
+    canary::Settings& cs = canary::settings();
+    const canary::Status& cst = canary::status();
+    if (ImGui::Checkbox("Clamp at the sub-rect edge (light leaks)", &cs.clamp)) {
+        config().edge_clamp = cs.clamp;
+        config_save();
+    }
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(120);
+    ImGui::SliderFloat("band##clamp_band", &cs.clamp_band, 0.02f, 1.0f, "%.2f");
+    if (cs.clamp && !cs.enabled) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s: %u pads, %u textures, %u skipped", cst.active ? "active" : "idle", cst.fills,
+                            cst.textures, cst.skipped);
+    }
+    ImGui::Checkbox("Canary outside the sub-rect (replaces the clamp)", &cs.enabled);
+    ImGui::SameLine();
+    static const char* const kFills[] = {"Mixed (magenta / 0 / near)", "Inverse (black / 64 / far)", "NaN"};
+    int fill = int(cs.fill);
+    ImGui::SetNextItemWidth(200);
+    if (ImGui::Combo("##canary_fill", &fill, kFills, IM_ARRAYSIZE(kFills)))
+        cs.fill = canary::Fill(fill);
+    ImGui::Checkbox("Blink Mixed / Inverse every", &cs.blink);
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(100);
+    ImGui::SliderInt("frames##canary_blink", &cs.blink_frames, 1, 120);
+    if (cs.enabled) {
+        ImGui::TextDisabled("%s: %u fills, %u textures (%u depth), %u skipped%s", cst.active ? "active" : "idle",
+                            cst.fills, cst.textures, cst.depth_fills, cst.skipped,
+                            cst.clear_view ? "" : ", no ClearView");
+        ImGui::TextDisabled("Any change inside the image while blinking = a pass reads outside the sub-rect.");
+    }
     ImGui::Separator();
     ImGui::Text("r_AntialiasingMode %d (active %d), TAA pattern %d, frame index %u", s.aa_mode, s.aa_mode_active,
                 s.taa_pattern, s.frame_index);
