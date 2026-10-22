@@ -1,7 +1,7 @@
 """Audit user.cfg / autoexec.cfg files against the engine's real cvar registry and config rules.
 usage: python3 cfg_audit.py [--md out.md] file.cfg [file.cfg ...]   (Windows: py cfg_audit.py ...)
-Uses ../data/cvars-WHGame-1.9.8.jsonl (cvar_registry.py) and ../data/cvargroups-WHGame-1.9.8.json (which cvars each
-Config/CVarGroups/*.cfg in Engine/engine.pak sets). Every rule here is backed by ../cfg-loading.md."""
+Uses ../data/cvars-WHGame-1.9.8.jsonl (cvar_registry.py) and ../data/cvargroups-WHGame-1.9.8.json (the cvars and
+per-level values of each Config/CVarGroups/*.cfg in Engine/engine.pak). Every rule here is backed by ../cfg-loading.md."""
 import argparse
 import collections
 import json
@@ -68,6 +68,12 @@ def load_registry():
     reg = {}
     for line in open(REGISTRY):
         r = json.loads(line)
+        # the register scan can leave junk above bit 31 (flags and int defaults are 32-bit in the engine)
+        if isinstance(r["flags"], int):
+            r["flags"] &= 0xFFFFFFFF
+        if r["type"] == "int" and isinstance(r["default"], int) and not isinstance(r["default"], bool):
+            d = r["default"] & 0xFFFFFFFF
+            r["default"] = d - (1 << 32) if d & 0x80000000 else d
         reg.setdefault(r["name"].lower(), r)
     return reg
 
@@ -75,9 +81,9 @@ def load_registry():
 def load_groups():
     groups = collections.defaultdict(set)
     names = set()
-    for g, members in json.loads(GROUPS.read_text()).items():
+    for g, d in json.loads(GROUPS.read_text()).items():
         names.add(g.lower())
-        for k in members:
+        for k in d["cvars"]:
             groups[k.lower()].add(g)
     return groups, names
 

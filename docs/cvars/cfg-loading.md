@@ -12,8 +12,9 @@ Data:
 - Not covered by the registry scan: CVarGroups (`sys_spec_*`, created from `Config/CVarGroups/*.cfg` at runtime,
   "creating CVarGroups from directory" in 0xe955b4) and the ~20 `sys_Pak*` vars registered through the CSystem helper
   `sub_180EB0938`.
-- [`data/cvargroups-WHGame-1.9.8.json`](data/cvargroups-WHGame-1.9.8.json): which cvars each
-  `Config/CVarGroups/*.cfg` in `Engine/engine.pak` sets (the pak is a zip). The per-level values are tabulated in
+- [`data/cvargroups-WHGame-1.9.8.json`](data/cvargroups-WHGame-1.9.8.json): the cvars and
+  per-level values of each `Config/CVarGroups/*.cfg` in `Engine/engine.pak` (the pak is a zip), with a level's
+  missing entries filled from `[default]`. The same values are tabulated in
   [`community-cfg-audit.md`](community-cfg-audit.md#quality-preset-tables-configcvargroups-in-enginepak).
 - [`tools/cfg_audit.py`](tools/cfg_audit.py) `<cfg...>` applies every rule below to any user.cfg / autoexec.cfg
   (Python 3, no dependencies). Results for 9 community configs are in [`community-cfg-audit.md`](community-cfg-audit.md).

@@ -357,7 +357,7 @@ static void draw_settings() {
 
 static void draw_menu_window() {
     ImGui::SetNextWindowPos(ImVec2(40, 40), ImGuiCond_FirstUseEver);
-    ImGui::Begin("KCD Clarity " KC_VERSION, nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("KCD1 Clarity " KC_VERSION, nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
     const sym::Status& ss = sym::status();
     const taa_dlss::Status& st = taa_dlss::status();
     const dlss::Status& d = dlss::status();
@@ -576,7 +576,7 @@ static void draw_input_section() {
 static void draw_debug_window(IDXGISwapChain* swapchain) {
     ImGui::SetNextWindowPos(ImVec2(480, 40), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(620, 0), ImGuiCond_FirstUseEver);
-    ImGui::Begin("KCD Clarity debug " KC_VERSION);
+    ImGui::Begin("KCD1 Clarity debug " KC_VERSION);
 
     const State& s = state();
     if (ImGui::CollapsingHeader("Status", ImGuiTreeNodeFlags_DefaultOpen)) {

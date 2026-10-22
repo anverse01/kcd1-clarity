@@ -1,264 +1,1811 @@
 {
- "sys_spec_Full": [
-  "sys_spec_ObjectDetail",
-  "sys_spec_Shading",
-  "sys_spec_VolumetricEffects",
-  "sys_spec_Shadows",
-  "sys_spec_Texture",
-  "sys_spec_Physics",
-  "sys_spec_PostProcessing",
-  "sys_spec_Particles",
-  "sys_spec_Sound",
-  "sys_spec_Water",
-  "sys_spec_GameEffects",
-  "sys_spec_light",
-  "sys_spec_TextureResolution",
-  "sys_spec_Vegetation"
- ],
- "sys_spec_GameEffects": [
-  "mfx_Timeout",
-  "r_RainOccluderSizeTreshold",
-  "wh_env_PuddleCreationDelay",
-  "wh_env_PuddleCreationSpeed",
-  "wh_env_PuddleDryupDelay",
-  "wh_env_PuddleDryupSpeed",
-  "wh_env_puddleMaskMin",
-  "wh_env_DirtCreationSpeed",
-  "wh_env_DirtDryupSpeed",
-  "wh_env_RainDiffuseDarkening",
-  "wh_env_RainWindStrength",
-  "wh_env_RainDropsAmountMul",
-  "wh_env_RainDropsSpeedMul",
-  "wh_env_RainDropsSpeedBase",
-  "wh_env_RainLayers"
- ],
- "sys_spec_Light": [
-  "r_Flares",
-  "r_DeferredShadingAreaLights"
- ],
- "sys_spec_ObjectDetail": [
-  "ca_AttachmentCullingRation",
-  "es_DebrisLifetimeScale",
-  "e_CoverageBufferReproj",
-  "e_DecalsAllowGameDecals",
-  "e_DecalsLifeTimeScale",
-  "e_DecalsOverlapping",
-  "e_Dissolve",
-  "e_LodMin",
-  "e_LodRatio",
-  "e_LodFaceAreaTargetSize",
-  "e_MaxViewDistSpecLerp",
-  "e_ObjQuality",
-  "e_OcclusionCullingViewDistRatio",
-  "e_StatObjBufferRenderTasks",
-  "e_StreamCgf",
-  "e_StreamInstancesMinLoadedNodes",
-  "e_TerrainLodRatio",
-  "e_TerrainOcclusionCullingMaxDist",
-  "e_Tessellation",
-  "e_ViewDistMin",
-  "e_ViewDistRatio",
-  "e_ViewDistRatioCustom",
-  "e_ViewDistRatioDetail",
-  "e_ViewDistRatioLights",
-  "e_ViewDistRatioVegetation",
-  "r_FlaresTessellationRatio",
-  "r_SilhouettePOM",
-  "r_usezpass",
-  "sys_flash_curve_tess_error",
-  "e_UberlodDistanceRatio",
-  "wh_cc_CharacterDetailReduction",
-  "wh_cc_LodForItemStreamOutBase",
-  "wh_cc_LodForAttachmentStreamOut",
-  "WH_AI_LOD_DistanceMin",
-  "WH_AI_LOD_DistanceMax"
- ],
- "sys_spec_Particles": [
-  "e_ParticlesMaxScreenFill",
-  "e_ParticlesMinDrawPixels",
-  "e_ParticlesMotionBlur",
-  "e_ParticlesObjectCollisions",
-  "e_ParticlesQuality",
-  "r_ParticlesHalfRes",
-  "r_ParticlesTessellation",
-  "e_ParticlesLayeredUpdateMul"
- ],
- "sys_spec_Physics": [
-  "es_MaxPhysDist",
-  "es_MaxPhysDistInvisible",
-  "e_CullVegActivation",
-  "e_FoliageWindActivationDist",
-  "e_PhysOceanCell",
-  "e_PhysProxyTriLimit",
-  "g_breakage_particles_limit",
-  "g_tree_cut_reuse_dist",
-  "p_gravity_z",
-  "p_max_MC_iters",
-  "p_max_object_splashes",
-  "p_max_substeps",
-  "p_max_substeps_large_group",
-  "p_num_bodies_large_group",
-  "p_splash_dist0",
-  "p_splash_dist1",
-  "p_splash_force0",
-  "p_splash_force1",
-  "p_splash_vel0",
-  "p_splash_vel1",
-  "v_vehicle_quality",
-  "e_MergedMeshesUseSpines"
- ],
- "sys_spec_PostProcessing": [
-  "q_ShaderHDR",
-  "q_ShaderPostProcess",
-  "r_ChromaticAberration",
-  "r_ColorGrading",
-  "r_ColorGradingChartsCache",
-  "r_DepthOfField",
-  "r_DepthOfFieldDilation",
-  "r_HDRBrightLevel",
-  "r_HDRRendering",
-  "r_MotionBlur",
-  "r_MotionBlurMaxViewDist",
-  "r_MotionBlurQuality",
-  "r_MotionBlurShutterSpeed",
-  "r_PostProcessHUD3DCache",
-  "r_RainMaxViewDist_Deferred",
-  "r_Sharpening",
-  "r_SunShafts",
-  "r_TranspDepthFixup",
-  "r_AntialiasingMode"
- ],
- "sys_spec_Quality": [
-  "q_ShaderGeneral",
-  "q_ShaderMetal",
-  "q_ShaderGlass",
-  "q_ShaderVegetation",
-  "q_ShaderIce",
-  "q_ShaderTerrain",
-  "q_ShaderShadow",
-  "q_ShaderFX",
-  "q_ShaderSky",
-  "q_Renderer"
- ],
- "sys_spec_Shading": [
-  "e_DynamicLightsMaxEntityLights",
-  "e_GI",
-  "e_GIAmount",
-  "e_GIMaxDistance",
-  "e_GINumCascades",
-  "e_LightVolumes",
-  "e_SkyUpdateRate",
-  "e_TerrainAO",
-  "e_VegetationUseTerrainColor",
-  "r_DeferredShadingTiled",
-  "r_DeferredShadingTiledHairQuality",
-  "r_deferredShadingFilterGBuffer",
-  "r_DetailDistance",
-  "r_EnvTexUpdateInterval",
-  "r_Refraction",
-  "r_ssdoAmountAmbient",
-  "r_ssdoAmountDirect",
-  "r_ssdoAmountReflection",
-  "r_ssdoRadius",
-  "r_ssdoRadiusMax",
-  "r_ssdoRadiusMin",
-  "e_svoTI_DistantSsaoAmount",
-  "r_ssdo",
-  "r_ssdoHalfRes",
-  "r_SSReflections",
-  "r_DeferredShading3PL",
-  "r_SSReflHalfRes",
-  "r_DeferredShadingSSS",
-  "sys_flash_edgeaa",
-  "sys_spec_Quality",
-  "e_svoti_LowSpecMode",
-  "e_svoTI_ConeMaxLength",
-  "e_svoTI_DiffuseConeWidth",
-  "e_svoTI_RsmConeMaxLength"
- ],
- "sys_spec_Shadows": [
-  "e_GsmLodsNum",
-  "e_GsmRange",
-  "e_ParticlesShadows",
-  "e_Shadows",
-  "e_ShadowsBlendCascades",
-  "e_ShadowsCastViewDistRatio",
-  "e_ShadowsCastViewDistRatioLights",
-  "e_ShadowsLodBiasFixed",
-  "e_ShadowsMaxTexRes",
-  "e_ShadowsOnAlphaBlend",
-  "e_ShadowsPoolSize",
-  "e_ShadowsResScale",
-  "e_ShadowsTessellateCascades",
-  "e_ShadowsTessellateDLights",
-  "e_ShadowsUpdateViewDistRatio",
-  "r_DrawNearShadows",
-  "r_FogShadows",
-  "r_FogShadowsWater",
-  "r_ShadowBlur",
-  "r_ShadowJittering",
-  "r_ShadowPoolMaxFrames",
-  "r_ShadowPoolMaxTimeslicedUpdatesPerFrame",
-  "r_ShadowsPCFiltering",
-  "r_ShadowsCache",
-  "r_ShadowsCacheResolutions",
-  "r_ShadowsUseClipVolume",
-  "e_ObjShadowCastSpec",
-  "r_ShadowsScreenSpace",
-  "e_SunAngleClamp",
-  "r_ShadowCastingLightsMaxCount",
-  "e_ShadowsCastViewDistRatioMulInvis"
- ],
- "sys_spec_Sound": [
-  "s_ObstructionMaxValue"
- ],
- "sys_spec_Texture": [
-  "r_DynTexAtlasCloudsMaxSize",
-  "r_DynTexAtlasSpritesMaxSize",
-  "r_DynTexMaxSize",
-  "r_EnvCMResolution",
-  "r_EnvTexResolution",
-  "r_ImposterRatio",
-  "r_TexAtlasSize",
-  "r_TexMaxAnisotropy",
-  "r_TexMinAnisotropy",
-  "r_TexNoAnisoAlphaTest",
-  "e_TerrainDetailMaterialsViewDistZ"
- ],
- "sys_spec_TextureResolution": [
-  "r_TexturesstreamingMinUsableMips",
-  "r_TexturesStreamingSkipMips",
-  "r_TexturesStreamPoolSize"
- ],
- "sys_spec_Vegetation": [
-  "e_MergedMeshesPool",
-  "e_MergedMeshesViewDistRatio",
-  "e_ProcVegetation",
-  "e_VegetationMinSize",
-  "e_VegetationUseTerrainColor",
-  "e_VegetationUseTerrainColorDistance",
-  "e_MergedMeshesInstanceDist",
-  "e_MergedMeshesLodRatio"
- ],
- "sys_spec_VolumetricEffects": [
-  "e_Clouds",
-  "r_Beams"
- ],
- "sys_spec_Water": [
-  "e_WaterOceanFFT",
-  "e_WaterTessellationAmount",
-  "e_WaterTessellationAmountX",
-  "e_WaterTessellationAmountY",
-  "e_WaterTessellationSwathWidth",
-  "q_ShaderWater",
-  "r_WaterReflectionsMinVisiblePixelsUpdate",
-  "r_WaterTessellationHW",
-  "r_WaterUpdateDistance",
-  "r_WaterUpdateFactor",
-  "r_WaterVolumeCaustics",
-  "r_WaterVolumeCausticsDensity",
-  "r_WaterVolumeCausticsMaxDist",
-  "r_WaterVolumeCausticsRes",
-  "r_WaterVolumeCausticsSnapFactor"
- ]
+ "sys_spec_Full": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "sys_spec_ObjectDetail": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_Shading": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_VolumetricEffects": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_Shadows": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_Texture": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_Physics": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_PostProcessing": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_Particles": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_Sound": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_Water": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_GameEffects": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_light": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_TextureResolution": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "sys_spec_Vegetation": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   }
+  }
+ },
+ "sys_spec_GameEffects": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "mfx_Timeout": {
+    "1": "0.01",
+    "2": "0.01",
+    "3": "0.01",
+    "4": "0.01",
+    "7": "0.01"
+   },
+   "--Rain": {
+    "1": "",
+    "2": "",
+    "3": "",
+    "4": "",
+    "7": ""
+   },
+   "r_RainOccluderSizeTreshold": {
+    "1": "10",
+    "2": "10",
+    "3": "10",
+    "4": "10",
+    "7": "10"
+   },
+   "wh_env_PuddleCreationDelay": {
+    "1": "1000",
+    "2": "1000",
+    "3": "1000",
+    "4": "1000",
+    "7": "1000"
+   },
+   "wh_env_PuddleCreationSpeed": {
+    "1": "0.005",
+    "2": "0.005",
+    "3": "0.005",
+    "4": "0.005",
+    "7": "0.005"
+   },
+   "wh_env_PuddleDryupDelay": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "wh_env_PuddleDryupSpeed": {
+    "1": "0.005",
+    "2": "0.005",
+    "3": "0.005",
+    "4": "0.005",
+    "7": "0.005"
+   },
+   "wh_env_puddleMaskMin": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "wh_env_DirtCreationSpeed": {
+    "1": "0.05",
+    "2": "0.05",
+    "3": "0.05",
+    "4": "0.05",
+    "7": "0.05"
+   },
+   "wh_env_DirtDryupSpeed": {
+    "1": "0.05",
+    "2": "0.05",
+    "3": "0.05",
+    "4": "0.05",
+    "7": "0.05"
+   },
+   "wh_env_RainDiffuseDarkening": {
+    "1": "0.2",
+    "2": "0.2",
+    "3": "0.2",
+    "4": "0.2",
+    "7": "0.2"
+   },
+   "wh_env_RainWindStrength": {
+    "1": "10",
+    "2": "10",
+    "3": "10",
+    "4": "10",
+    "7": "10"
+   },
+   "wh_env_RainDropsAmountMul": {
+    "1": "15",
+    "2": "15",
+    "3": "15",
+    "4": "15",
+    "7": "15"
+   },
+   "wh_env_RainDropsSpeedMul": {
+    "1": "7",
+    "2": "7",
+    "3": "7",
+    "4": "7",
+    "7": "7"
+   },
+   "wh_env_RainDropsSpeedBase": {
+    "1": "1.5",
+    "2": "1.5",
+    "3": "1.5",
+    "4": "1.5",
+    "7": "1.5"
+   },
+   "wh_env_RainLayers": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "3",
+    "7": "3"
+   }
+  }
+ },
+ "sys_spec_Light": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "r_Flares": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_DeferredShadingAreaLights": {
+    "1": "0",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   }
+  }
+ },
+ "sys_spec_ObjectDetail": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "ca_AttachmentCullingRation": {
+    "1": "145",
+    "2": "300",
+    "3": "360",
+    "4": "370",
+    "7": "450"
+   },
+   "es_DebrisLifetimeScale": {
+    "1": "0.6",
+    "2": "0.8",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_CoverageBufferReproj": {
+    "1": "6",
+    "2": "6",
+    "3": "6",
+    "4": "6",
+    "7": "6"
+   },
+   "e_DecalsAllowGameDecals": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_DecalsLifeTimeScale": {
+    "1": "1",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "e_DecalsOverlapping": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_Dissolve": {
+    "1": "2",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "e_LodMin": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "e_LodRatio": {
+    "1": "10",
+    "2": "15",
+    "3": "25",
+    "4": "45",
+    "7": "60"
+   },
+   "e_LodFaceAreaTargetSize": {
+    "1": "0.003",
+    "2": "0.002",
+    "3": "0.001",
+    "4": "0.001",
+    "7": "0.001"
+   },
+   "e_MaxViewDistSpecLerp": {
+    "1": "0.5",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_ObjQuality": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "4"
+   },
+   "e_OcclusionCullingViewDistRatio": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_StatObjBufferRenderTasks": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_StreamCgf": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_StreamInstancesMinLoadedNodes": {
+    "1": "2048",
+    "2": "2048",
+    "3": "2048",
+    "4": "2048",
+    "7": "2048"
+   },
+   "e_TerrainLodRatio": {
+    "1": "1",
+    "2": "0.5",
+    "3": "0.3",
+    "4": "0.25",
+    "7": "0.2"
+   },
+   "e_TerrainOcclusionCullingMaxDist": {
+    "1": "130",
+    "2": "200",
+    "3": "200",
+    "4": "200",
+    "7": "200"
+   },
+   "e_Tessellation": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "1",
+    "7": "1"
+   },
+   "e_ViewDistMin": {
+    "1": "5",
+    "2": "5",
+    "3": "5",
+    "4": "5",
+    "7": "5"
+   },
+   "e_ViewDistRatio": {
+    "1": "50",
+    "2": "75",
+    "3": "100",
+    "4": "110",
+    "7": "125"
+   },
+   "e_ViewDistRatioCustom": {
+    "1": "60",
+    "2": "100",
+    "3": "100",
+    "4": "130",
+    "7": "150"
+   },
+   "e_ViewDistRatioDetail": {
+    "1": "25",
+    "2": "35",
+    "3": "100",
+    "4": "110",
+    "7": "125"
+   },
+   "e_ViewDistRatioLights": {
+    "1": "25",
+    "2": "50",
+    "3": "50",
+    "4": "70",
+    "7": "80"
+   },
+   "e_ViewDistRatioVegetation": {
+    "1": "55",
+    "2": "55",
+    "3": "55",
+    "4": "60",
+    "7": "65"
+   },
+   "r_FlaresTessellationRatio": {
+    "1": "0.25",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_SilhouettePOM": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_usezpass": {
+    "1": "2",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "sys_flash_curve_tess_error": {
+    "1": "4",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "e_UberlodDistanceRatio": {
+    "1": "1.5",
+    "2": "1.6",
+    "3": "1.8",
+    "4": "2.2",
+    "7": "2.5"
+   },
+   "wh_cc_CharacterDetailReduction": {
+    "1": "1",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "wh_cc_LodForItemStreamOutBase": {
+    "1": "11",
+    "2": "15",
+    "3": "15",
+    "4": "20",
+    "7": "20"
+   },
+   "wh_cc_LodForAttachmentStreamOut": {
+    "1": "2",
+    "2": "4",
+    "3": "4",
+    "4": "6",
+    "7": "6"
+   },
+   "WH_AI_LOD_DistanceMin": {
+    "1": "60",
+    "2": "60",
+    "3": "60",
+    "4": "80",
+    "7": "100"
+   },
+   "WH_AI_LOD_DistanceMax": {
+    "1": "90",
+    "2": "90",
+    "3": "90",
+    "4": "110",
+    "7": "130"
+   }
+  }
+ },
+ "sys_spec_Particles": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "e_ParticlesMaxScreenFill": {
+    "1": "32",
+    "2": "64",
+    "3": "128",
+    "4": "160",
+    "7": "160"
+   },
+   "e_ParticlesMinDrawPixels": {
+    "1": "1.5",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_ParticlesMotionBlur": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "1",
+    "7": "1"
+   },
+   "e_ParticlesObjectCollisions": {
+    "1": "2",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "e_ParticlesQuality": {
+    "1": "2",
+    "2": "3",
+    "3": "4",
+    "4": "4",
+    "7": "4"
+   },
+   "r_ParticlesHalfRes": {
+    "1": "1",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_ParticlesTessellation": {
+    "1": "0",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_ParticlesLayeredUpdateMul": {
+    "1": "2",
+    "2": "3",
+    "3": "4",
+    "4": "5",
+    "7": "5"
+   }
+  }
+ },
+ "sys_spec_Physics": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "es_MaxPhysDist": {
+    "1": "50",
+    "2": "100",
+    "3": "100",
+    "4": "100",
+    "7": "100"
+   },
+   "es_MaxPhysDistInvisible": {
+    "1": "15",
+    "2": "25",
+    "3": "25",
+    "4": "25",
+    "7": "25"
+   },
+   "e_CullVegActivation": {
+    "1": "30",
+    "2": "50",
+    "3": "50",
+    "4": "50",
+    "7": "50"
+   },
+   "e_FoliageWindActivationDist": {
+    "1": "10",
+    "2": "25",
+    "3": "25",
+    "4": "25",
+    "7": "25"
+   },
+   "e_PhysOceanCell": {
+    "1": "1",
+    "2": "0.5",
+    "3": "0.5",
+    "4": "0.5",
+    "7": "0.5"
+   },
+   "e_PhysProxyTriLimit": {
+    "1": "10000",
+    "2": "10000",
+    "3": "10000",
+    "4": "10000",
+    "7": "10000"
+   },
+   "g_breakage_particles_limit": {
+    "1": "80",
+    "2": "160",
+    "3": "160",
+    "4": "160",
+    "7": "160"
+   },
+   "g_tree_cut_reuse_dist": {
+    "1": "0.35",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "p_gravity_z": {
+    "1": "-9.81",
+    "2": "-9.81",
+    "3": "-9.81",
+    "4": "-9.81",
+    "7": "-9.81"
+   },
+   "p_max_MC_iters": {
+    "1": "4000",
+    "2": "6000",
+    "3": "6000",
+    "4": "6000",
+    "7": "6000"
+   },
+   "p_max_object_splashes": {
+    "1": "3",
+    "2": "3",
+    "3": "3",
+    "4": "3",
+    "7": "3"
+   },
+   "p_max_substeps": {
+    "1": "2",
+    "2": "5",
+    "3": "5",
+    "4": "5",
+    "7": "5"
+   },
+   "p_max_substeps_large_group": {
+    "1": "5",
+    "2": "5",
+    "3": "5",
+    "4": "5",
+    "7": "5"
+   },
+   "p_num_bodies_large_group": {
+    "1": "100",
+    "2": "100",
+    "3": "100",
+    "4": "100",
+    "7": "100"
+   },
+   "p_splash_dist0": {
+    "1": "7",
+    "2": "7",
+    "3": "7",
+    "4": "7",
+    "7": "7"
+   },
+   "p_splash_dist1": {
+    "1": "30",
+    "2": "30",
+    "3": "30",
+    "4": "30",
+    "7": "30"
+   },
+   "p_splash_force0": {
+    "1": "10",
+    "2": "10",
+    "3": "10",
+    "4": "10",
+    "7": "10"
+   },
+   "p_splash_force1": {
+    "1": "100",
+    "2": "100",
+    "3": "100",
+    "4": "100",
+    "7": "100"
+   },
+   "p_splash_vel0": {
+    "1": "4.5",
+    "2": "4.5",
+    "3": "4.5",
+    "4": "4.5",
+    "7": "4.5"
+   },
+   "p_splash_vel1": {
+    "1": "10",
+    "2": "10",
+    "3": "10",
+    "4": "10",
+    "7": "10"
+   },
+   "v_vehicle_quality": {
+    "1": "4",
+    "2": "4",
+    "3": "4",
+    "4": "4",
+    "7": "4"
+   },
+   "e_MergedMeshesUseSpines": {
+    "1": "0",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   }
+  }
+ },
+ "sys_spec_PostProcessing": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "q_ShaderHDR": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "q_ShaderPostProcess": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "r_ChromaticAberration": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_ColorGrading": {
+    "1": "2",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "r_ColorGradingChartsCache": {
+    "1": "4",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_DepthOfField": {
+    "1": "2",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "r_DepthOfFieldDilation": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_HDRBrightLevel": {
+    "1": "1.0",
+    "2": "1.0",
+    "3": "1.0",
+    "4": "1.0",
+    "7": "1.0"
+   },
+   "r_HDRRendering": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_MotionBlur": {
+    "1": "2",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "r_MotionBlurMaxViewDist": {
+    "1": "16",
+    "2": "32",
+    "3": "32",
+    "4": "32",
+    "7": "32"
+   },
+   "r_MotionBlurQuality": {
+    "1": "0",
+    "2": "1",
+    "3": "1",
+    "4": "2",
+    "7": "2"
+   },
+   "r_MotionBlurShutterSpeed": {
+    "1": "125",
+    "2": "125",
+    "3": "125",
+    "4": "125",
+    "7": "125"
+   },
+   "r_PostProcessHUD3DCache": {
+    "1": "2",
+    "2": "2",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_RainMaxViewDist_Deferred": {
+    "1": "40",
+    "2": "100",
+    "3": "150",
+    "4": "150",
+    "7": "150"
+   },
+   "r_Sharpening": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_SunShafts": {
+    "1": "2",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "r_TranspDepthFixup": {
+    "1": "0",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_AntialiasingMode": {
+    "1": "0",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   }
+  }
+ },
+ "sys_spec_Quality": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "q_ShaderGeneral": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "q_ShaderMetal": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "q_ShaderGlass": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "q_ShaderVegetation": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "q_ShaderIce": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "q_ShaderTerrain": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "q_ShaderShadow": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "q_ShaderFX": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "q_ShaderSky": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   },
+   "q_Renderer": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "3",
+    "7": "3"
+   }
+  }
+ },
+ "sys_spec_Shading": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "e_DynamicLightsMaxEntityLights": {
+    "1": "7",
+    "2": "11",
+    "3": "16",
+    "4": "16",
+    "7": "16"
+   },
+   "e_GI": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "e_GIAmount": {
+    "1": "0.6",
+    "2": "0.6",
+    "3": "0.6",
+    "4": "0.6",
+    "7": "0.6"
+   },
+   "e_GIMaxDistance": {
+    "1": "50",
+    "2": "100",
+    "3": "100",
+    "4": "100",
+    "7": "100"
+   },
+   "e_GINumCascades": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_LightVolumes": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_SkyUpdateRate": {
+    "1": "0.5",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_TerrainAO": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "e_VegetationUseTerrainColor": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_DeferredShadingTiled": {
+    "1": "2",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "r_DeferredShadingTiledHairQuality": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "2",
+    "7": "2"
+   },
+   "r_deferredShadingFilterGBuffer": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_DetailDistance": {
+    "1": "4",
+    "2": "8",
+    "3": "8",
+    "4": "8",
+    "7": "8"
+   },
+   "r_EnvTexUpdateInterval": {
+    "1": "0.075",
+    "2": "0.05",
+    "3": "0.05",
+    "4": "0.05",
+    "7": "0.05"
+   },
+   "r_Refraction": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_ssdoAmountAmbient": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_ssdoAmountDirect": {
+    "1": "1.5",
+    "2": "1.5",
+    "3": "1.5",
+    "4": "1.5",
+    "7": "1.5"
+   },
+   "r_ssdoAmountReflection": {
+    "1": "4",
+    "2": "4",
+    "3": "4",
+    "4": "4",
+    "7": "4"
+   },
+   "r_ssdoRadius": {
+    "1": "0.3",
+    "2": "0.3",
+    "3": "0.3",
+    "4": "0.3",
+    "7": "0.3"
+   },
+   "r_ssdoRadiusMax": {
+    "1": "2",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "r_ssdoRadiusMin": {
+    "1": "0.1",
+    "2": "0.1",
+    "3": "0.1",
+    "4": "0.1",
+    "7": "0.1"
+   },
+   "e_svoTI_DistantSsaoAmount": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_ssdo": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_ssdoHalfRes": {
+    "1": "2",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "r_SSReflections": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "1",
+    "7": "1"
+   },
+   "r_DeferredShading3PL": {
+    "1": "1",
+    "2": "1",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "r_SSReflHalfRes": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "0"
+   },
+   "r_DeferredShadingSSS": {
+    "1": "0",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "sys_flash_edgeaa": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "sys_spec_Quality": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "4"
+   },
+   "e_svoti_LowSpecMode": {
+    "1": "6",
+    "2": "4",
+    "3": "4",
+    "4": "2",
+    "7": "1"
+   },
+   "e_svoTI_ConeMaxLength": {
+    "1": "25",
+    "2": "25",
+    "3": "25",
+    "4": "30",
+    "7": "35"
+   },
+   "e_svoTI_DiffuseConeWidth": {
+    "1": "24",
+    "2": "24",
+    "3": "12",
+    "4": "9",
+    "7": "6"
+   },
+   "e_svoTI_RsmConeMaxLength": {
+    "1": "2",
+    "2": "3",
+    "3": "6",
+    "4": "8",
+    "7": "12"
+   }
+  }
+ },
+ "sys_spec_Shadows": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "e_GsmLodsNum": {
+    "1": "4",
+    "2": "4",
+    "3": "5",
+    "4": "5",
+    "7": "5"
+   },
+   "e_GsmRange": {
+    "1": "3",
+    "2": "3",
+    "3": "3",
+    "4": "3",
+    "7": "3"
+   },
+   "e_ParticlesShadows": {
+    "1": "0",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_Shadows": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_ShadowsBlendCascades": {
+    "1": "0",
+    "2": "1",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "e_ShadowsCastViewDistRatio": {
+    "1": "0.6",
+    "2": "0.8",
+    "3": "1",
+    "4": "1.3",
+    "7": "1.6"
+   },
+   "e_ShadowsCastViewDistRatioLights": {
+    "1": "0.2",
+    "2": "0.2",
+    "3": "0.2",
+    "4": "0.5",
+    "7": "0.8"
+   },
+   "e_ShadowsLodBiasFixed": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "e_ShadowsMaxTexRes": {
+    "1": "512",
+    "2": "1024",
+    "3": "1024",
+    "4": "1024",
+    "7": "1024"
+   },
+   "e_ShadowsOnAlphaBlend": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "e_ShadowsPoolSize": {
+    "1": "4096",
+    "2": "4096",
+    "3": "4096",
+    "4": "4096",
+    "7": "4096"
+   },
+   "e_ShadowsResScale": {
+    "1": "4",
+    "2": "4",
+    "3": "4",
+    "4": "4",
+    "7": "4"
+   },
+   "e_ShadowsTessellateCascades": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_ShadowsTessellateDLights": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "e_ShadowsUpdateViewDistRatio": {
+    "1": "60",
+    "2": "80",
+    "3": "100",
+    "4": "100",
+    "7": "100"
+   },
+   "r_DrawNearShadows": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_FogShadows": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_FogShadowsWater": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "1",
+    "7": "1"
+   },
+   "r_ShadowBlur": {
+    "1": "0",
+    "2": "3",
+    "3": "3",
+    "4": "3",
+    "7": "3"
+   },
+   "r_ShadowJittering": {
+    "1": "1",
+    "2": "1",
+    "3": "2.5",
+    "4": "2.5",
+    "7": "2.5"
+   },
+   "r_ShadowPoolMaxFrames": {
+    "1": "30",
+    "2": "30",
+    "3": "30",
+    "4": "15",
+    "7": "5"
+   },
+   "r_ShadowPoolMaxTimeslicedUpdatesPerFrame": {
+    "1": "20",
+    "2": "30",
+    "3": "50",
+    "4": "110",
+    "7": "120"
+   },
+   "r_ShadowsPCFiltering": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_ShadowsCache": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_ShadowsCacheResolutions": {
+    "1": "3162,2107,1405,936,312",
+    "2": "6324,4214,2810,1872,624",
+    "3": "6324,4214,2810,1872,624",
+    "4": "6324,4214,2810,1872,624",
+    "7": "6324,4214,2810,1872,624"
+   },
+   "r_ShadowsUseClipVolume": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_ObjShadowCastSpec": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "7": "7"
+   },
+   "r_ShadowsScreenSpace": {
+    "1": "0",
+    "2": "1",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "e_SunAngleClamp": {
+    "1": "30",
+    "2": "30",
+    "3": "20",
+    "4": "20",
+    "7": "20"
+   },
+   "r_ShadowCastingLightsMaxCount": {
+    "1": "10",
+    "2": "12",
+    "3": "16",
+    "4": "22",
+    "7": "28"
+   },
+   "e_ShadowsCastViewDistRatioMulInvis": {
+    "1": "0.2",
+    "2": "0.3",
+    "3": "0.4",
+    "4": "0.5",
+    "7": "0.6"
+   }
+  }
+ },
+ "sys_spec_Sound": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "s_ObstructionMaxValue": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   }
+  }
+ },
+ "sys_spec_Texture": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "r_DynTexAtlasCloudsMaxSize": {
+    "1": "24",
+    "2": "24",
+    "3": "32",
+    "4": "32",
+    "7": "32"
+   },
+   "r_DynTexAtlasSpritesMaxSize": {
+    "1": "16",
+    "2": "16",
+    "3": "32",
+    "4": "32",
+    "7": "32"
+   },
+   "r_DynTexMaxSize": {
+    "1": "100",
+    "2": "120",
+    "3": "160",
+    "4": "160",
+    "7": "160"
+   },
+   "r_EnvCMResolution": {
+    "1": "0",
+    "2": "1",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "r_EnvTexResolution": {
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "3",
+    "7": "3"
+   },
+   "r_ImposterRatio": {
+    "1": "2",
+    "2": "1.5",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_TexAtlasSize": {
+    "1": "512",
+    "2": "2048",
+    "3": "2048",
+    "4": "2048",
+    "7": "2048"
+   },
+   "r_TexMaxAnisotropy": {
+    "1": "2",
+    "2": "8",
+    "3": "4",
+    "4": "16",
+    "7": "16"
+   },
+   "r_TexMinAnisotropy": {
+    "1": "2",
+    "2": "8",
+    "3": "4",
+    "4": "16",
+    "7": "16"
+   },
+   "r_TexNoAnisoAlphaTest": {
+    "1": "1",
+    "2": "1",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "e_TerrainDetailMaterialsViewDistZ": {
+    "1": "60",
+    "2": "80",
+    "3": "80",
+    "4": "100",
+    "7": "100"
+   }
+  }
+ },
+ "sys_spec_TextureResolution": {
+  "default_level": 0,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "r_TexturesstreamingMinUsableMips": {
+    "1": "8",
+    "2": "8",
+    "3": "8",
+    "4": "8",
+    "7": "8"
+   },
+   "r_TexturesStreamingSkipMips": {
+    "1": "2",
+    "2": "1",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "r_TexturesStreamPoolSize": {
+    "1": "384",
+    "2": "1024",
+    "3": "1536",
+    "4": "2048",
+    "7": "4096"
+   }
+  }
+ },
+ "sys_spec_Vegetation": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "e_MergedMeshesPool": {
+    "1": "8192",
+    "2": "8192",
+    "3": "8192",
+    "4": "16384",
+    "7": "16384"
+   },
+   "e_MergedMeshesViewDistRatio": {
+    "1": "50",
+    "2": "60",
+    "3": "70",
+    "4": "75",
+    "7": "85"
+   },
+   "e_ProcVegetation": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "e_VegetationMinSize": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "0",
+    "7": "0"
+   },
+   "e_VegetationUseTerrainColor": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_VegetationUseTerrainColorDistance": {
+    "1": "80",
+    "2": "80",
+    "3": "80",
+    "4": "80",
+    "7": "80"
+   },
+   "e_MergedMeshesInstanceDist": {
+    "1": "2",
+    "2": "4",
+    "3": "8",
+    "4": "12",
+    "7": "16"
+   },
+   "e_MergedMeshesLodRatio": {
+    "1": "1",
+    "2": "4",
+    "3": "5",
+    "4": "6",
+    "7": "8"
+   }
+  }
+ },
+ "sys_spec_VolumetricEffects": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "e_Clouds": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "r_Beams": {
+    "1": "0",
+    "2": "0",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   }
+  }
+ },
+ "sys_spec_Water": {
+  "default_level": 3,
+  "levels": [
+   1,
+   2,
+   3,
+   4,
+   7
+  ],
+  "cvars": {
+   "e_WaterOceanFFT": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   },
+   "e_WaterTessellationAmount": {
+    "1": "1",
+    "2": "10",
+    "3": "10",
+    "4": "10",
+    "7": "10"
+   },
+   "e_WaterTessellationAmountX": {
+    "1": "10",
+    "2": "10",
+    "3": "10",
+    "4": "50",
+    "7": "85"
+   },
+   "e_WaterTessellationAmountY": {
+    "1": "10",
+    "2": "10",
+    "3": "10",
+    "4": "50",
+    "7": "85"
+   },
+   "e_WaterTessellationSwathWidth": {
+    "1": "10",
+    "2": "10",
+    "3": "10",
+    "4": "10",
+    "7": "10"
+   },
+   "q_ShaderWater": {
+    "1": "1",
+    "2": "2",
+    "3": "2",
+    "4": "2",
+    "7": "2"
+   },
+   "r_WaterReflectionsMinVisiblePixelsUpdate": {
+    "1": "0.05",
+    "2": "0.05",
+    "3": "0.05",
+    "4": "0.05",
+    "7": "0.05"
+   },
+   "r_WaterTessellationHW": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "1",
+    "7": "1"
+   },
+   "r_WaterUpdateDistance": {
+    "1": "1",
+    "2": "1",
+    "3": "0.2",
+    "4": "0.2",
+    "7": "0.2"
+   },
+   "r_WaterUpdateFactor": {
+    "1": "0.1",
+    "2": "0.05",
+    "3": "0.0",
+    "4": "0.0",
+    "7": "0.0"
+   },
+   "r_WaterVolumeCaustics": {
+    "1": "0",
+    "2": "0",
+    "3": "0",
+    "4": "1",
+    "7": "1"
+   },
+   "r_WaterVolumeCausticsDensity": {
+    "1": "64",
+    "2": "128",
+    "3": "256",
+    "4": "256",
+    "7": "256"
+   },
+   "r_WaterVolumeCausticsMaxDist": {
+    "1": "20",
+    "2": "25",
+    "3": "35",
+    "4": "35",
+    "7": "35"
+   },
+   "r_WaterVolumeCausticsRes": {
+    "1": "384",
+    "2": "512",
+    "3": "1024",
+    "4": "1024",
+    "7": "1024"
+   },
+   "r_WaterVolumeCausticsSnapFactor": {
+    "1": "1",
+    "2": "1",
+    "3": "1",
+    "4": "1",
+    "7": "1"
+   }
+  }
+ }
 }

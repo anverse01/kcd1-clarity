@@ -1,5 +1,5 @@
-KCD Clarity - DLSS for Kingdom Come: Deliverance
-=================================================
+KCD1 Clarity - DLSS for Kingdom Come: Deliverance
+==================================================
 
 Unofficial mod. Not affiliated with Warhorse Studios or NVIDIA. Uses NVIDIA DLSS.
 
@@ -41,6 +41,6 @@ virtual-key codes).
 
 Licenses
 --------
-KCD Clarity is MIT licensed. nvngx_dlss.dll is NVIDIA's and covered by the NVIDIA
+KCD1 Clarity is MIT licensed. nvngx_dlss.dll is NVIDIA's and covered by the NVIDIA
 license in kcd_clarity_licenses. Source code, updates and bug reports: the GitHub
 repository you downloaded this from (Issues tab).

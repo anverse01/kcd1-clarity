@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KCD1 Config Guide</title>
+<meta name="description" content="Kingdom Come: Deliverance user.cfg / autoexec.cfg generator, config checker and a database of all 4007 console variables, with what actually works.">
+<meta property="og:title" content="KCD1 Config Guide">
+<meta property="og:description" content="user.cfg / autoexec.cfg generator, config checker and cvar database for Kingdom Come: Deliverance.">
+<meta property="og:image" content="https://eonflux7.github.io/kcd1-clarity/assets/social-preview.jpg">
+<link rel="icon" href="../assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site/style.css">
+</head>
+<body>
+<header class="site">
+  <a href="../"><img class="logo" src="../assets/logo-banner.jpg" width="1200" height="400" alt="KCD1 Clarity"></a>
+  <h1>Config Guide</h1>
+  <p class="sub">What <code>user.cfg</code> and <code>autoexec.cfg</code> can really change in Kingdom Come: Deliverance
+    (Steam 1.9.8), based on reverse engineering the game's config loading.</p>
+</header>
+<div class="rule"></div>
+<nav class="tabs" aria-label="Sections">
+  <a href="#generator">Config generator</a>
+  <a href="#check">Check a config</a>
+  <a href="#db">Cvar database</a>
+  <a href="#how">How configs load</a>
+</nav>
+
+<main>
+<p id="loading" class="panel">Loading the cvar data…</p>
+
+<!-- ======================= GENERATOR ======================= -->
+<section class="tab" id="tab-generator" hidden>
+  <div class="panel">
+    <h2>Config generator</h2>
+    <p>Answer a few questions to get a <code>user.cfg</code> and an <code>autoexec.cfg</code>. Each line goes into the
+      file where the game actually keeps it (see <a href="#how">how configs load</a>).</p>
+    <div class="note"><b>Not benchmarked.</b> These values come from reading the engine code and Warhorse's own
+      quality presets, not from frame-time measurements. Test them on your machine, and set your video options in the
+      game menu first: the generated lines adjust the details on top of them.</div>
+
+    <h3>Your PC</h3>
+    <div class="grid">
+      <label class="field"><span>Graphics card memory (VRAM)</span>
+        <select id="g-vram">
+          <option value="2">2 GB</option><option value="3">3 GB</option><option value="4">4 GB</option>
+          <option value="6">6 GB</option><option value="8" selected>8 GB</option><option value="10">10 GB</option>
+          <option value="12">12 GB</option><option value="16">16 GB or more</option>
+        </select></label>
+      <label class="field"><span>System memory (RAM)</span>
+        <select id="g-ram"><option value="16" selected>16 GB or less</option><option value="32">32 GB or more</option></select></label>
+      <label class="field"><span>CPU threads (Task Manager &gt; Performance &gt; Logical processors)</span>
+        <select id="g-threads"><option value="8" selected>8 or fewer</option><option value="16">more than 8</option></select></label>
+      <label class="field"><span>Game installed on</span>
+        <select id="g-drive"><option value="hdd">Hard disk</option><option value="ssd" selected>SATA SSD</option><option value="nvme">NVMe SSD</option></select></label>
+    </div>
+
+    <h3>Goal</h3>
+    <div class="choices" id="g-goal">
+      <label class="choice"><input type="radio" name="goal" value="none" checked>
+        <span><b>Fix stutter only</b><small>Keep the look of your menu settings; only streaming, frame pacing and VRAM fixes.</small></span></label>
+      <label class="choice"><input type="radio" name="goal" value="high">
+        <span><b>A bit more FPS</b><small>Trims the most expensive extras; hard to tell apart from the High preset.</small></span></label>
+      <label class="choice"><input type="radio" name="goal" value="mid">
+        <span><b>More FPS</b><small>Cheaper global illumination, shadows, grass and NPC detail.</small></span></label>
+      <label class="choice"><input type="radio" name="goal" value="low">
+        <span><b>Maximum FPS</b><small>For weak GPUs/CPUs. Visibly simpler lighting, shadows and vegetation.</small></span></label>
+    </div>
+
+    <h3>Frame rate cap</h3>
+    <div class="grid">
+      <label class="field"><span>Cap (the menu only offers 30 and 60)</span>
+        <select id="g-fps">
+          <option value="">No change (use the menu)</option>
+          <option>40</option><option>45</option><option>50</option><option>60</option><option>72</option>
+          <option>90</option><option>120</option><option>144</option><option>165</option>
+        </select></label>
+      <label class="choice"><input type="checkbox" id="g-vsync" checked>
+        <span><b>Turn V-Sync off</b><small>Use the cap instead (only when a cap is set).</small></span></label>
+    </div>
+
+    <h3>Extras</h3>
+    <div class="choices">
+      <label class="choice"><input type="checkbox" id="g-extras">
+        <span><b>Turn off small extras</b><small>Screen-space reflections, underwater caustics and particle motion blur.</small></span></label>
+      <label class="choice"><input type="checkbox" id="g-finalize">
+        <span><b>Experimental: limit streaming work per frame</b><small><code>sys_streaming_max_finalize_per_frame 12</code>. Fewer spikes, slower pop-in.</small></span></label>
+      <label class="choice" id="g-nvme-row"><input type="checkbox" id="g-nvme">
+        <span><b>Experimental: more parallel streaming on NVMe</b><small>Needs the <code>-devmode</code> launch option, which also unlocks cheat cvars.</small></span></label>
+    </div>
+
+    <h3>Your own lines</h3>
+    <p class="small muted">Add any cvar from the <a href="#db">database</a> with its <em>Add to my config</em> button.
+      It's placed in the right file automatically.</p>
+    <div id="g-custom" class="small"></div>
+  </div>
+
+  <div class="panel">
+    <div class="out-head"><h2>Your files</h2><span class="muted small" id="g-summary"></span></div>
+    <p>Save both files in the <b>game folder</b>, next to the <code>Bin</code> and <code>Data</code> folders
+      (Steam: right-click the game &gt; Manage &gt; Browse local files). Name them exactly <code>user.cfg</code> and
+      <code>autoexec.cfg</code>. Watch out: Notepad can quietly add <code>.txt</code>.</p>
+    <div id="g-devmode"></div>
+    <div class="outputs">
+      <div>
+        <div class="out-head"><h3>user.cfg</h3><span>
+          <button class="small" data-copy="g-user">Copy</button>
+          <button class="small primary" data-download="g-user" data-name="user.cfg">Download</button></span></div>
+        <textarea id="g-user" readonly spellcheck="false"></textarea>
+      </div>
+      <div>
+        <div class="out-head"><h3>autoexec.cfg</h3><span>
+          <button class="small" data-copy="g-auto">Copy</button>
+          <button class="small primary" data-download="g-auto" data-name="autoexec.cfg">Download</button></span></div>
+        <textarea id="g-auto" readonly spellcheck="false"></textarea>
+      </div>
+    </div>
+    <p class="small muted">Lines in <code>autoexec.cfg</code> belong to video options or quality presets. The game
+      re-applies its own values when you change that option in the menu, until the next restart. Whether autoexec
+      also beats the values loaded from your profile at startup is likely but <b>not yet verified</b>.</p>
+  </div>
+</section>
+
+<!-- ======================= CHECKER ======================= -->
+<section class="tab" id="tab-check" hidden>
+  <div class="panel">
+    <h2>Check a config</h2>
+    <p>Paste a <code>user.cfg</code> or <code>autoexec.cfg</code> (yours, or one from a mod page), or open the file.
+      Every line is checked against the game's real cvar list and loading rules. Nothing is uploaded; it all runs in
+      your browser.</p>
+    <div class="db-controls">
+      <label class="field"><span>File type</span>
+        <select id="c-kind"><option value="user">user.cfg</option><option value="autoexec">autoexec.cfg</option></select></label>
+      <label class="button">Open file…<input type="file" id="c-file" accept=".cfg,.txt" hidden></label>
+      <button id="c-example">Example</button>
+    </div>
+    <textarea id="c-input" rows="12" spellcheck="false" placeholder="r_TexturesStreamPoolSize = 4096&#10;sys_MaxFPS = 50&#10;r_DepthOfField = 0"></textarea>
+    <div id="c-file-warn"></div>
+  </div>
+  <div class="panel" id="c-results-panel" hidden>
+    <div class="out-head"><h2>Result</h2><span id="c-summary" class="small"></span></div>
+    <div class="table-wrap"><table id="c-results"></table></div>
+    <h3>What the verdicts mean</h3>
+    <div class="legend" id="c-legend"></div>
+  </div>
+</section>
+
+<!-- ======================= DATABASE ======================= -->
+<section class="tab" id="tab-db" hidden>
+  <div class="panel">
+    <h2>Cvar database</h2>
+    <p>Every console variable the game registers, with its type, default, the engine's own help text and, most
+      importantly, whether a config file can change it. Click a row for details and quality-preset values.</p>
+    <div class="db-controls">
+      <input type="search" id="d-q" placeholder="Search names and descriptions, e.g. shadow, lod, fov" aria-label="Search cvars">
+      <select id="d-prefix" aria-label="Subsystem"></select>
+    </div>
+    <div class="chips" id="d-chips" role="group" aria-label="Filter by status"></div>
+    <p class="small muted" id="d-count"></p>
+    <div class="cv-list" id="d-list"></div>
+    <p class="more"><button id="d-more" hidden>Show more</button></p>
+  </div>
+</section>
+
+<!-- ======================= HOW ======================= -->
+<section class="tab" id="tab-how" hidden>
+  <div class="panel">
+    <h2>How the game loads configs</h2>
+    <h3>Order</h3>
+    <ol>
+      <li><code>system.cfg</code>, then <code>user.cfg</code> (game folder), while the engine starts.</li>
+      <li>A few thread/worker settings are read once, right after that.</li>
+      <li>Your saved profile is applied: resolution, V-Sync, FPS cap, FOV, the distance sliders, and every quality
+        option. Each quality option is a <em>preset group</em> that sets dozens of cvars (209 in total).</li>
+      <li><code>autoexec.cfg</code> runs when the game starts. (That this is after step 3 is likely but unverified.)</li>
+      <li>Changing a video option later re-applies its whole group.</li>
+    </ol>
+    <h3>So where does a line go?</h3>
+    <table>
+      <tr><th>the cvar is…</th><th>put it in</th></tr>
+      <tr><td>part of a video option or quality preset</td><td><code>autoexec.cfg</code>. In <code>user.cfg</code> it's replaced at step 3.</td></tr>
+      <tr><td>read once at startup (<code>sys_job_system_max_worker</code>, thread affinities)</td><td><code>user.cfg</code>. autoexec runs too late.</td></tr>
+      <tr><td>anything else that's settable</td><td>either file</td></tr>
+      <tr><td>cheat / const / read-only (about 1700 cvars)</td><td>nowhere, unless the game runs with <code>-devmode</code></td></tr>
+    </table>
+    <h3>Parsing rules</h3>
+    <ul>
+      <li>A comment must <em>start</em> the line, with <code>;</code> or <code>--</code>. A comment after a value is
+        part of the value (harmless after a number, not after text).</li>
+      <li><code>user.cfg</code> needs <code>name = value</code>. Lines without <code>=</code> (like <code>#comments</code>
+        or <code>bind</code>) are ignored. <code>autoexec.cfg</code> also accepts <code>name value</code> and commands
+        like <code>bind</code>.</li>
+      <li>Whole-number cvars cut off fractions: <code>r_HDRBloom = 0.4</code> becomes 0, which turns bloom off.</li>
+      <li>An empty value (<code>name =</code>) sets 0.</li>
+      <li>The file must be called exactly <code>user.cfg</code>; <code>user.cfg.txt</code> is never loaded.</li>
+    </ul>
+    <p>Full details, with engine addresses for every claim: <a href="https://github.com/eonflux7/kcd1-clarity/blob/main/docs/cvars/cfg-loading.md">cfg-loading.md</a>,
+      <a href="https://github.com/eonflux7/kcd1-clarity/blob/main/docs/cvars/perf-cvars.md">perf-cvars.md</a>,
+      <a href="https://github.com/eonflux7/kcd1-clarity/blob/main/docs/cvars/community-cfg-audit.md">community-cfg-audit.md</a>.</p>
+  </div>
+</section>
+</main>
+
+<div class="rule"></div>
+<footer class="site">
+  Part of <a href="../">KCD1 Clarity</a>, a DLSS mod for Kingdom Come: Deliverance ·
+  <a href="https://github.com/eonflux7/kcd1-clarity">GitHub</a> ·
+  <a href="https://github.com/eonflux7/kcd1-clarity/issues">Report a mistake</a><br>
+  Unofficial; not affiliated with Warhorse Studios. Data from WHGame.dll 1.9.8 (Steam).
+</footer>
+<script src="site/app.js"></script>
+</body>
+</html>

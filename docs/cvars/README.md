@@ -1,8 +1,10 @@
 # Console variables and config files in KCD
 
-Research done while building KCD Clarity: how Kingdom Come: Deliverance (Steam 1.9.8) loads `user.cfg` and
+Research done while building KCD1 Clarity: how Kingdom Come: Deliverance (Steam 1.9.8) loads `user.cfg` and
 `autoexec.cfg`, which cvars a config file can actually change, and which values the game overwrites afterwards. It
 comes from static analysis of `WHGame.dll`. Nothing in it has been benchmarked.
+
+**Use it in your browser:** [config generator, config checker and cvar database](https://eonflux7.github.io/kcd1-clarity/cvars/).
 
 ## Short version
 
@@ -42,8 +44,9 @@ with the reason next to it. A legend is printed at the end. The rules behind the
 | [community-cfg-audit.md](community-cfg-audit.md) | 9 popular community configs checked line by line, plus the full quality-preset tables (what each menu level sets) |
 | [perf-cvars.md](perf-cvars.md) | cvars ranked by likely stutter / GPU / CPU impact, with where each one has to go. **Not benchmarked** |
 | [data/cvars-WHGame-1.9.8.jsonl](data/cvars-WHGame-1.9.8.jsonl) | every cvar registration: name, type, default, flags, const, help text |
-| [data/cvargroups-WHGame-1.9.8.json](data/cvargroups-WHGame-1.9.8.json) | which cvars each quality preset group sets |
+| [data/cvargroups-WHGame-1.9.8.json](data/cvargroups-WHGame-1.9.8.json) | what each quality preset group sets, per level (Low, Medium, High, Very High, 7) |
 | [tools/cfg_audit.py](tools/cfg_audit.py) | checks a config (see above). Python 3, no extra packages |
+| [index.html](index.html), [site/](site/) | the web page; `site/data.json` is built by `tools/build_site_data.py` from `data/` |
 | [tools/cvar_registry.py](tools/cvar_registry.py) | IDA script that produced the cvar data (only needed for another game build) |
 
 ## Open questions

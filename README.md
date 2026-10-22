@@ -1,4 +1,6 @@
-# KCD Clarity
+<p align="center"><img src="docs/assets/logo-banner.jpg" alt="KCD1 Clarity" width="640"></p>
+
+# KCD1 Clarity
 
 NVIDIA DLSS for **Kingdom Come: Deliverance** (the first game). It replaces the game's built-in anti-aliasing with
 DLSS. That gives a cleaner, more stable image, and with upscaling, more FPS. The game renders at a lower resolution
@@ -9,8 +11,12 @@ Unofficial mod, not affiliated with Warhorse Studios or NVIDIA. Uses NVIDIA DLSS
 > **Early version.** DLAA (100%) is the most reliable mode. Below 100% some effects can still look wrong. Please
 > [report](#reporting-bugs) anything you see.
 
+**Website:** [eonflux7.github.io/kcd1-clarity](https://eonflux7.github.io/kcd1-clarity/) ·
+[Config guide & cvar database](https://eonflux7.github.io/kcd1-clarity/cvars/)
+
 **Players:** [Requirements](#requirements) · [Install](#install) · [Use](#use) · [Troubleshooting](#troubleshooting)
 · [Config files & console variables](#config-files-and-console-variables)
+
 **Developers:** [Building](#building-from-source) · [How it works](#how-it-works)
 
 ## Requirements
@@ -75,7 +81,9 @@ in decimal (F8 = 119). Leave the `[debug]` section at its defaults.
 
 ## Config files and console variables
 
-[docs/cvars](docs/cvars/README.md) explains how the game loads `user.cfg` and `autoexec.cfg`, and which tweaks there
+The **[config guide](https://eonflux7.github.io/kcd1-clarity/cvars/)** builds a `user.cfg` / `autoexec.cfg` for
+your PC, checks any config line by line, and lists every console variable with what it really does. The research
+behind it is in [docs/cvars](docs/cvars/README.md), which explains how the game loads `user.cfg` and `autoexec.cfg`, and which tweaks there
 actually do something. Many popular lines are refused or overwritten by the game. It includes a script that checks
 your own config. You don't need any of it to use this mod.
 

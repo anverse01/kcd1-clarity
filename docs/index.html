@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KCD1 Clarity</title>
+<meta name="description" content="NVIDIA DLSS for Kingdom Come: Deliverance (the first game). Unofficial mod.">
+<meta property="og:title" content="KCD1 Clarity">
+<meta property="og:description" content="NVIDIA DLSS for Kingdom Come: Deliverance (the first game). Unofficial mod.">
+<meta property="og:image" content="https://eonflux7.github.io/kcd1-clarity/assets/social-preview.jpg">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cvars/site/style.css">
+<style>
+  .hero { text-align: center; }
+  .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 18px 0 4px; }
+  .actions .button { font-size: 16px; padding: 11px 20px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 18px; }
+  ol li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<header class="site hero">
+  <img class="logo" src="assets/logo-banner.jpg" width="1200" height="400" alt="KCD1 Clarity">
+  <p class="sub">NVIDIA DLSS for <b>Kingdom Come: Deliverance</b>, the first game. A cleaner image than the built-in
+    anti-aliasing, and more FPS by rendering below your screen resolution.</p>
+  <div class="actions">
+    <a class="button primary" href="https://github.com/eonflux7/kcd1-clarity/releases/latest">Download</a>
+    <a class="button" href="cvars/">Config guide &amp; cvar database</a>
+    <a class="button" href="https://github.com/eonflux7/kcd1-clarity">Source on GitHub</a>
+  </div>
+</header>
+<div class="rule"></div>
+<main>
+  <div class="cards">
+    <div class="panel">
+      <h2>Install</h2>
+      <ol>
+        <li>Download <code>kcd-clarity-&lt;version&gt;.zip</code> from the
+          <a href="https://github.com/eonflux7/kcd1-clarity/releases/latest">latest release</a>.</li>
+        <li>Copy <code>dinput8.dll</code> and <code>nvngx_dlss.dll</code> into the game's <code>Bin\Win64</code>
+          folder (Steam: right-click the game &gt; Manage &gt; Browse local files).</li>
+        <li>In the game's <i>Options &gt; Video</i>, set Anti-aliasing to <b>SMAA 2TX</b>.</li>
+        <li>Press <b>F8</b> in game, choose <b>DLSS</b> and a quality level.</li>
+      </ol>
+      <p class="small muted">Uninstall: delete the two files. Other mods that use a <code>dinput8.dll</code> (ASI
+        loader, other DLSS mods) can't be installed at the same time.</p>
+    </div>
+    <div class="panel">
+      <h2>Requirements</h2>
+      <ul>
+        <li>NVIDIA RTX graphics card (RTX 20 series or newer), recent driver.</li>
+        <li>Kingdom Come: Deliverance, Steam version 1.9.8. Other versions are untested; the mod warns you if it
+          doesn't recognise the game.</li>
+      </ul>
+      <div class="note"><b>Early version.</b> DLAA (100%) is the most reliable mode. Below 100% some effects can still
+        look wrong. Please <a href="https://github.com/eonflux7/kcd1-clarity/issues">report</a> what you see, with a
+        screenshot and <code>kcd_clarity.log</code>.</div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Config guide</h2>
+    <p>Most <code>user.cfg</code> tweaks shared online are refused, overwritten by the video options, or do nothing.
+      The <a href="cvars/">config guide</a> builds a config that works, checks any config line by line, and lists all
+      4007 console variables with what each one really does.</p>
+  </div>
+</main>
+<div class="rule"></div>
+<footer class="site">
+  Unofficial mod, not affiliated with Warhorse Studios or NVIDIA. Uses NVIDIA DLSS. NVIDIA, RTX and DLSS are
+  trademarks of NVIDIA Corporation. · <a href="https://github.com/eonflux7/kcd1-clarity">GitHub</a>
+</footer>
+</body>
+</html>
