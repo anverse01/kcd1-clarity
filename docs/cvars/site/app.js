@@ -596,17 +596,18 @@ function presetCard(g, lv, all) {
     <h2>${esc(presetTitle(g))} <a class="preset-id" href="#db/${esc(g)}">${esc(g)}</a></h2>
     <span class="small muted">${lv.length < 2 ? `${cvars.length} cvars` : `${changed} of ${cvars.length} change`}</span></div>`;
   if (!rows.length) return h + `<p class="small muted">Nothing changes between ${names[0]} and ${names[names.length - 1]}.</p></article>`;
-  h += `<table class="levels ptable" style="--n:${lv.length}"><thead><tr><th>cvar</th>${names.map((n) => `<th>${n}</th>`).join("")}</tr></thead><tbody>`;
+  h += `<div class="table-wrap"><table class="levels ptable" style="--n:${lv.length}"><thead><tr><th>cvar</th>${names.map((n) => `<th>${n}</th>`).join("")}</tr></thead><tbody>`;
   for (const [n, vals] of rows) {
     const lc = n.toLowerCase(), cv = byName.get(lc);
     const href = groupByLc.has(lc) ? "#presets/" + n : "#db/" + n;
     let badge = "";
     if (cv && (status(cv) === "blocked" || status(cv) === "dead")) badge = ` <span class="badge ${STATUS[status(cv)].cls}">${STATUS[status(cv)].label}</span>`;
     else if (!cv && !groupByLc.has(lc)) badge = ' <span class="badge b-missing">not registered</span>';
-    h += `<tr${changes(vals) ? "" : ' class="same"'}><td><a href="${esc(href)}">${esc(n)}</a>${badge}</td>${lv.map((l, i) =>
-      `<td data-l="${names[i]}"${i && vals[l] !== vals[lv[i - 1]] ? ' class="chg"' : ""}>${esc(vals[l] ?? "")}</td>`).join("")}</tr>`;
+    // lists like r_ShadowsCacheResolutions' "3162,2107,1405,936,312" may wrap after a comma; cvar names never wrap
+    h += `<tr${changes(vals) ? "" : ' class="same"'}><td><a class="pname" href="${esc(href)}">${esc(n)}</a>${badge}</td>${lv.map((l, i) =>
+      `<td data-l="${names[i]}"${i && vals[l] !== vals[lv[i - 1]] ? ' class="chg"' : ""}>${esc(vals[l] ?? "").replace(/,/g, ",<wbr>")}</td>`).join("")}</tr>`;
   }
-  return h + "</tbody></table></article>";
+  return h + "</tbody></table></div></article>";
 }
 
 function renderPresets() {

@@ -258,6 +258,8 @@ input[type="text"], input[type="search"], input[type="number"] { height: 40px; }
 .preset .out-head { margin-bottom: 12px; }
 .preset h2 { font-size: 18px; }
 .preset-id { font: 400 13px var(--mono); color: var(--muted); margin-left: 8px; }
+.ptable td:first-child { word-break: normal; }
+.ptable .pname { white-space: nowrap; }
 .ptable td a { color: var(--text); text-decoration: none; }
 .ptable td a:hover { color: var(--accent); text-decoration: underline; }
 .ptable td .badge { margin-left: 4px; }
@@ -265,7 +267,7 @@ input[type="text"], input[type="search"], input[type="number"] { height: 40px; }
 .ptable tr.same td, .ptable tr.same td a { color: var(--muted); }
 .p-sep { font-size: 18px; margin: 36px 0 4px; }
 .p-sep-text { margin: 0 0 8px; }
-@media (max-width: 640px) {
+@media (max-width: 760px) {
   .ptable thead { display: none; }
   .ptable tr { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); border-bottom: 1px solid var(--border); padding: 8px 0; }
   .ptable td, .ptable td:first-child { border: 0; padding: 2px 4px; text-align: left; }
