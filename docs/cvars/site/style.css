@@ -237,7 +237,7 @@ th { font: 600 13px var(--caps); letter-spacing: 0.05em; color: var(--ink-2); }
 .rec { border-left: 3px solid var(--green); background: rgba(63, 107, 47, 0.1); padding: 6px 10px; margin: 8px 0; }
 .rec.dont { border-color: var(--red); background: rgba(140, 42, 31, 0.08); }
 .levels td, .levels th { text-align: center; font-family: var(--mono); font-size: 13px; }
-.levels td:first-child, .levels th:first-child { text-align: left; }
+.levels td:first-child, .levels th:first-child { text-align: left; word-break: break-all; min-width: 12ch; }
 .more { text-align: center; margin: 14px 0 0; }
 
 .legend { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; align-items: baseline; font-size: 16px; }
