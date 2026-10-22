@@ -1,4 +1,9 @@
-<p align="center"><img src="docs/assets/logo-banner.jpg" alt="KCD1 Clarity" width="640"></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark.png">
+    <img src="docs/assets/wordmark-dark.png" alt="KCD1 Clarity" width="520">
+  </picture>
+</p>
 
 # KCD1 Clarity
 

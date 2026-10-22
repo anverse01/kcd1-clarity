@@ -12,17 +12,16 @@
 <link rel="apple-touch-icon" href="../assets/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400&family=Cousine:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site/style.css">
 </head>
 <body>
 <header class="site">
-  <a href="../"><img class="logo" src="../assets/logo-banner.jpg" width="1200" height="400" alt="KCD1 Clarity"></a>
+  <a href="../"><img class="logo" src="../assets/wordmark.png" width="1200" height="287" alt="KCD1 Clarity"></a>
   <h1>Config Guide</h1>
   <p class="sub">What <code>user.cfg</code> and <code>autoexec.cfg</code> can really change in Kingdom Come: Deliverance
     (Steam 1.9.8), based on reverse engineering the game's config loading.</p>
 </header>
-<div class="rule"></div>
 <nav class="tabs" aria-label="Sections">
   <a href="#generator">Config generator</a>
   <a href="#check">Check a config</a>
@@ -45,18 +44,23 @@
 
     <h3>Your PC</h3>
     <div class="grid">
-      <label class="field"><span>Graphics card memory (VRAM)</span>
+      <label class="field"><span>Graphics card memory</span>
         <select id="g-vram">
           <option value="2">2 GB</option><option value="3">3 GB</option><option value="4">4 GB</option>
           <option value="6">6 GB</option><option value="8" selected>8 GB</option><option value="10">10 GB</option>
           <option value="12">12 GB</option><option value="16">16 GB or more</option>
         </select></label>
-      <label class="field"><span>System memory (RAM)</span>
+      <label class="field"><span>System memory</span>
         <select id="g-ram"><option value="16" selected>16 GB or less</option><option value="32">32 GB or more</option></select></label>
-      <label class="field"><span>CPU threads (Task Manager &gt; Performance &gt; Logical processors)</span>
-        <select id="g-threads"><option value="8" selected>8 or fewer</option><option value="16">more than 8</option></select></label>
+      <label class="field"><span>CPU threads</span>
+        <select id="g-threads"><option value="8" selected>8 or fewer</option><option value="16">More than 8</option></select>
+        <span class="hint">Task Manager &gt; Performance &gt; CPU &gt; Logical processors</span></label>
       <label class="field"><span>Game installed on</span>
         <select id="g-drive"><option value="hdd">Hard disk</option><option value="ssd" selected>SATA SSD</option><option value="nvme">NVMe SSD</option></select></label>
+      <label class="field"><span>In-game graphics quality</span>
+        <select id="g-level"><option value="1">Low</option><option value="2">Medium</option>
+          <option value="3" selected>High</option><option value="4">Very High</option></select>
+        <span class="hint">The level most of your video options are on</span></label>
     </div>
 
     <h3>Goal</h3>
@@ -73,14 +77,17 @@
 
     <h3>Frame rate cap</h3>
     <div class="grid">
-      <label class="field"><span>Cap (the menu only offers 30 and 60)</span>
+      <label class="field"><span>FPS cap</span>
         <select id="g-fps">
           <option value="">No change (use the menu)</option>
           <option>40</option><option>45</option><option>50</option><option>60</option><option>72</option>
           <option>90</option><option>120</option><option>144</option><option>165</option>
-        </select></label>
+        </select>
+        <span class="hint">The game's menu only offers 30 and 60</span></label>
+    </div>
+    <div class="choices" style="margin-top:10px">
       <label class="choice"><input type="checkbox" id="g-vsync" checked>
-        <span><b>Turn V-Sync off</b><small>Use the cap instead (only when a cap is set).</small></span></label>
+        <span><b>Turn V-Sync off</b><small>Let the cap pace frames instead (only when a cap is set).</small></span></label>
     </div>
 
     <h3>Extras</h3>
@@ -107,13 +114,13 @@
     <div id="g-devmode"></div>
     <div class="outputs">
       <div>
-        <div class="out-head"><h3>user.cfg</h3><span>
+        <div class="out-head"><h3>user.cfg</h3><span class="actions">
           <button class="small" data-copy="g-user">Copy</button>
           <button class="small primary" data-download="g-user" data-name="user.cfg">Download</button></span></div>
         <textarea id="g-user" readonly spellcheck="false"></textarea>
       </div>
       <div>
-        <div class="out-head"><h3>autoexec.cfg</h3><span>
+        <div class="out-head"><h3>autoexec.cfg</h3><span class="actions">
           <button class="small" data-copy="g-auto">Copy</button>
           <button class="small primary" data-download="g-auto" data-name="autoexec.cfg">Download</button></span></div>
         <textarea id="g-auto" readonly spellcheck="false"></textarea>
@@ -205,7 +212,6 @@
 </section>
 </main>
 
-<div class="rule"></div>
 <footer class="site">
   Part of <a href="../">KCD1 Clarity</a>, a DLSS mod for Kingdom Come: Deliverance ·
   <a href="https://github.com/eonflux7/kcd1-clarity">GitHub</a> ·

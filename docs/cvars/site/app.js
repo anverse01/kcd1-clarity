@@ -323,14 +323,6 @@ function addCustom(name, value) {
 }
 
 function setupGenerator() {
-  // the player's current menu level, so we don't "lower" something the preset already has lower
-  const level = document.createElement("label");
-  level.className = "field";
-  level.innerHTML = `<span>Your in-game graphics quality (mostly)</span>
-    <select id="g-level"><option value="1">Low</option><option value="2">Medium</option>
-    <option value="3" selected>High</option><option value="4">Very High</option></select>`;
-  $("#g-vram").closest(".grid").append(level);
-
   const saved = store.get("gen", null);
   if (saved) {
     for (const k of ["vram", "ram", "threads", "drive", "level", "fps"]) if (saved[k] != null) $("#g-" + k).value = saved[k];
@@ -562,9 +554,9 @@ function detailHtml(e) {
       h += levelsTable([[e.name, vals]]);
     }
     if (st !== "dead") {
-      h += `<p><input type="text" size="10" value="${esc(e.def ?? "")}" aria-label="value">
+      h += `<div class="add"><input type="text" value="${esc(e.def ?? "")}" aria-label="value">
         <button class="small" data-add="${esc(e.name)}">Add to my config</button>
-        <span class="small muted">goes to the generator, in ${esc(s.where)}</span></p>`;
+        <span class="small muted">goes to the generator, in ${esc(s.where)}</span></div>`;
     }
   }
   h += `<p class="small"><a href="#db/${esc(e.name)}">Link to this cvar</a></p></div>`;

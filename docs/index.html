@@ -12,19 +12,18 @@
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,700;1,400&family=Cousine:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="cvars/site/style.css">
 <style>
-  .hero { text-align: center; }
-  .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 18px 0 4px; }
-  .actions .button { font-size: 16px; padding: 11px 20px; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 18px; }
-  ol li { margin: 4px 0; }
+  header.site .logo { width: min(560px, 88vw); }
+  .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 22px 0 8px; }
+  .actions .button { font-size: 15px; padding: 11px 18px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 16px; }
 </style>
 </head>
 <body>
-<header class="site hero">
-  <img class="logo" src="assets/logo-banner.jpg" width="1200" height="400" alt="KCD1 Clarity">
+<header class="site">
+  <img class="logo" src="assets/wordmark.png" width="1200" height="287" alt="KCD1 Clarity">
   <p class="sub">NVIDIA DLSS for <b>Kingdom Come: Deliverance</b>, the first game. A cleaner image than the built-in
     anti-aliasing, and more FPS by rendering below your screen resolution.</p>
   <div class="actions">
@@ -33,7 +32,6 @@
     <a class="button" href="https://github.com/eonflux7/kcd1-clarity">Source on GitHub</a>
   </div>
 </header>
-<div class="rule"></div>
 <main>
   <div class="cards">
     <div class="panel">
@@ -68,7 +66,6 @@
       4007 console variables with what each one really does.</p>
   </div>
 </main>
-<div class="rule"></div>
 <footer class="site">
   Unofficial mod, not affiliated with Warhorse Studios or NVIDIA. Uses NVIDIA DLSS. NVIDIA, RTX and DLSS are
   trademarks of NVIDIA Corporation. · <a href="https://github.com/eonflux7/kcd1-clarity">GitHub</a>
