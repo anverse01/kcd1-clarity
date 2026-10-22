@@ -179,7 +179,7 @@ th { font-size: 13px; color: var(--muted); font-weight: 700; }
 .db-controls input[type="search"] { flex: 3 1 260px; }
 .db-controls > select { flex: 1 1 200px; }
 .db-controls > .field { flex: 0 1 200px; }
-.db-controls > button, .db-controls > .button { height: 40px; }
+.db-controls > button, .db-controls > .button { height: 40px; display: inline-flex; align-items: center; justify-content: center; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
 .chip {
   font: 14px var(--sans);
@@ -252,3 +252,23 @@ select {
 select option { background: var(--surface); color: var(--text); }
 input[type="text"], input[type="search"], input[type="number"] { height: 40px; }
 .field .hint { font-size: 13px; color: var(--muted); }
+
+/* graphics presets */
+.check { display: flex; align-items: center; gap: 8px; height: 40px; font-size: 14px; cursor: pointer; }
+.preset .out-head { margin-bottom: 12px; }
+.preset h2 { font-size: 18px; }
+.preset-id { font: 400 13px var(--mono); color: var(--muted); margin-left: 8px; }
+.ptable td a { color: var(--text); text-decoration: none; }
+.ptable td a:hover { color: var(--accent); text-decoration: underline; }
+.ptable td .badge { margin-left: 4px; }
+.ptable td.chg { color: var(--accent); font-weight: 700; background: rgba(217, 165, 74, 0.08); }
+.ptable tr.same td, .ptable tr.same td a { color: var(--muted); }
+.p-sep { font-size: 18px; margin: 36px 0 4px; }
+.p-sep-text { margin: 0 0 8px; }
+@media (max-width: 640px) {
+  .ptable thead { display: none; }
+  .ptable tr { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); border-bottom: 1px solid var(--border); padding: 8px 0; }
+  .ptable td, .ptable td:first-child { border: 0; padding: 2px 4px; text-align: left; }
+  .ptable td:first-child { grid-column: 1 / -1; }
+  .ptable td[data-l]::before { content: attr(data-l); display: block; font: 11px var(--sans); color: var(--muted); }
+}

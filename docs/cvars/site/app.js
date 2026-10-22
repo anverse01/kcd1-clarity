@@ -144,7 +144,7 @@ function judge(kind, k, v) {
 
 // ---------------------------------------------------------------- tabs / routing
 
-const TABS = ["generator", "check", "db", "how"];
+const TABS = ["generator", "check", "db", "presets", "how"];
 
 function route() {
   const [tab, arg] = decodeURIComponent(location.hash.slice(1)).split("/");
@@ -155,6 +155,7 @@ function route() {
     else a.removeAttribute("aria-current");
   }
   if (t === "db" && arg) openCvar(arg);
+  if (t === "presets" && arg) document.getElementById("preset-" + arg.toLowerCase())?.scrollIntoView({ block: "start" });
 }
 
 // ---------------------------------------------------------------- generator
@@ -522,7 +523,7 @@ function flagNames(f) {
 function levelsTable(rows) {
   const lv = [1, 2, 3, 4, 7];
   return `<div class="table-wrap"><table class="levels"><tr><th>cvar</th>${lv.map((l) => `<th>${LEVELS[l]}</th>`).join("")}</tr>${rows
-    .map(([n, vals]) => `<tr><td><a href="#db/${esc(n)}">${esc(n)}</a></td>${lv.map((l) => `<td>${esc(vals[l] ?? "")}</td>`).join("")}</tr>`)
+    .map(([n, vals]) => `<tr><td><a href="#${groupByLc.has(n.toLowerCase()) ? "presets" : "db"}/${esc(n)}">${esc(n)}</a></td>${lv.map((l) => `<td>${esc(vals[l] ?? "")}</td>`).join("")}</tr>`)
     .join("")}</table></div>`;
 }
 
@@ -532,7 +533,7 @@ function detailHtml(e) {
   if (e.group) {
     const g = D.groups[e.name];
     h += `<p>${esc(e.help)}</p><p class="small muted">File default level: ${g.default_level}. Level 7 exists in the files;
-      the menu offers Low to Very High.</p>`;
+      the menu offers Low to Very High. <a href="#presets/${esc(e.name)}">Compare levels in Graphics presets</a></p>`;
     h += levelsTable(Object.entries(g.cvars));
   } else {
     h += `<dl>
@@ -550,7 +551,7 @@ function detailHtml(e) {
     }
     for (const g of groupsOf.get(e.lc) || []) {
       const vals = Object.entries(D.groups[g].cvars).find(([k]) => k.toLowerCase() === e.lc)[1];
-      h += `<p class="small"><b>${esc(g)}</b> preset values${menuGroups.has(g.toLowerCase()) ? " (set from the video options)" : ""}:</p>`;
+      h += `<p class="small"><a href="#presets/${esc(g)}"><b>${esc(g)}</b></a> preset values${menuGroups.has(g.toLowerCase()) ? " (set from the video options)" : ""}:</p>`;
       h += levelsTable([[e.name, vals]]);
     }
     if (st !== "dead") {
@@ -574,6 +575,70 @@ function openCvar(name) {
   if (el) { toggleCvar(el, true); el.scrollIntoView({ block: "start" }); }
 }
 
+// ---------------------------------------------------------------- graphics presets
+
+// Our names for the groups; the menu's own wording may differ.
+const PRESET_TITLE = {
+  gameeffects: "Game effects", light: "Lighting", objectdetail: "Object detail", particles: "Particles",
+  physics: "Physics", postprocessing: "Post-processing", shading: "Shading", shadows: "Shadows", texture: "Textures",
+  textureresolution: "Texture resolution", vegetation: "Vegetation", volumetriceffects: "Volumetric effects",
+  water: "Water", full: "Full", quality: "Shader quality", sound: "Sound",
+};
+const presetTitle = (g) => PRESET_TITLE[g.toLowerCase().replace("sys_spec_", "")] || g;
+
+function presetCard(g, lv, all) {
+  const cvars = Object.entries(D.groups[g].cvars);
+  const changes = (vals) => lv.some((l, i) => i && vals[l] !== vals[lv[i - 1]]);
+  const changed = cvars.filter(([, vals]) => changes(vals)).length;
+  const rows = all || lv.length < 2 ? cvars : cvars.filter(([, vals]) => changes(vals));
+  const names = lv.map((l) => LEVELS[l]);
+  let h = `<article class="panel preset" id="preset-${esc(g.toLowerCase())}"><div class="out-head">
+    <h2>${esc(presetTitle(g))} <a class="preset-id" href="#db/${esc(g)}">${esc(g)}</a></h2>
+    <span class="small muted">${lv.length < 2 ? `${cvars.length} cvars` : `${changed} of ${cvars.length} change`}</span></div>`;
+  if (!rows.length) return h + `<p class="small muted">Nothing changes between ${names[0]} and ${names[names.length - 1]}.</p></article>`;
+  h += `<table class="levels ptable" style="--n:${lv.length}"><thead><tr><th>cvar</th>${names.map((n) => `<th>${n}</th>`).join("")}</tr></thead><tbody>`;
+  for (const [n, vals] of rows) {
+    const lc = n.toLowerCase(), cv = byName.get(lc);
+    const href = groupByLc.has(lc) ? "#presets/" + n : "#db/" + n;
+    let badge = "";
+    if (cv && (status(cv) === "blocked" || status(cv) === "dead")) badge = ` <span class="badge ${STATUS[status(cv)].cls}">${STATUS[status(cv)].label}</span>`;
+    else if (!cv && !groupByLc.has(lc)) badge = ' <span class="badge b-missing">not registered</span>';
+    h += `<tr${changes(vals) ? "" : ' class="same"'}><td><a href="${esc(href)}">${esc(n)}</a>${badge}</td>${lv.map((l, i) =>
+      `<td data-l="${names[i]}"${i && vals[l] !== vals[lv[i - 1]] ? ' class="chg"' : ""}>${esc(vals[l] ?? "")}</td>`).join("")}</tr>`;
+  }
+  return h + "</tbody></table></article>";
+}
+
+function renderPresets() {
+  const from = +$("#p-from").value, to = +$("#p-to").value, all = $("#p-all").checked;
+  store.set("presets", { from, to, all });
+  const order = [1, 2, 3, 4, 7];
+  let lv = order.filter((l) => l >= Math.min(from, to) && l <= Math.max(from, to));
+  if (from > to) lv = lv.reverse();
+  const groups = Object.keys(D.groups).sort((a, b) => presetTitle(a).localeCompare(presetTitle(b)));
+  const menu = groups.filter((g) => menuGroups.has(g.toLowerCase()));
+  const other = groups.filter((g) => !menuGroups.has(g.toLowerCase()));
+  let total = 0;
+  for (const g of menu)
+    total += Object.values(D.groups[g].cvars).filter((vals) => lv.some((l, i) => i && vals[l] !== vals[lv[i - 1]])).length;
+  $("#p-summary").textContent = lv.length < 2 ? "Pick two different levels to see what changes."
+    : `${total} cvar values change between ${LEVELS[from]} and ${LEVELS[to]} across the ${menu.length} video options.`;
+  $("#p-list").innerHTML = menu.map((g) => presetCard(g, lv, all)).join("")
+    + `<h2 class="p-sep">Not tied to a video option</h2><p class="small muted p-sep-text">The game has these groups too, but no
+      menu setting picks their level. Setting one from a config applies its column; Full sets the other groups.</p>`
+    + other.map((g) => presetCard(g, lv, all)).join("");
+}
+
+function setupPresets() {
+  const saved = store.get("presets", null);
+  if (saved) {
+    for (const k of ["from", "to"]) if ($(`#p-${k} option[value="${saved[k]}"]`)) $("#p-" + k).value = saved[k];
+    $("#p-all").checked = !!saved.all;
+  }
+  $("#tab-presets").addEventListener("change", renderPresets);
+  renderPresets();
+}
+
 // ---------------------------------------------------------------- boot
 
 fetch("site/data.json")
@@ -584,6 +649,7 @@ fetch("site/data.json")
     setupGenerator();
     setupChecker();
     setupDb();
+    setupPresets();
     window.addEventListener("hashchange", route);
     route();
   })

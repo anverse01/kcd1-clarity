@@ -26,6 +26,7 @@
   <a href="#generator">Config generator</a>
   <a href="#check">Check a config</a>
   <a href="#db">Cvar database</a>
+  <a href="#presets">Graphics presets</a>
   <a href="#how">How configs load</a>
 </nav>
 
@@ -171,6 +172,25 @@
     <div class="cv-list" id="d-list"></div>
     <p class="more"><button id="d-more" hidden>Show more</button></p>
   </div>
+</section>
+
+<!-- ======================= PRESETS ======================= -->
+<section class="tab" id="tab-presets" hidden>
+  <div class="panel">
+    <h2>Graphics presets</h2>
+    <p>Each quality option in the video settings is a preset group. Picking Low, Medium, High or Very High sets every
+      cvar in that group to the value in its column. The game applies them from your profile after
+      <code>user.cfg</code> is read, so a different value for one of these cvars has to go in <code>autoexec.cfg</code>.</p>
+    <div class="db-controls">
+      <label class="field"><span>From</span><select id="p-from"><option value="1" selected>Low</option><option value="2">Medium</option><option value="3">High</option><option value="4">Very High</option><option value="7">7 (files only)</option></select></label>
+      <label class="field"><span>To</span><select id="p-to"><option value="1">Low</option><option value="2">Medium</option><option value="3">High</option><option value="4" selected>Very High</option><option value="7">7 (files only)</option></select></label>
+      <label class="check"><input type="checkbox" id="p-all"> Show cvars that don't change</label>
+    </div>
+    <p class="small muted" id="p-summary"></p>
+    <p class="small muted">Highlighted values differ from the column before them. Level 7 exists in the game's preset
+      files, but the menu stops at Very High.</p>
+  </div>
+  <div id="p-list"></div>
 </section>
 
 <!-- ======================= HOW ======================= -->

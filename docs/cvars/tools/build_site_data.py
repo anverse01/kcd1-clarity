@@ -16,6 +16,14 @@ FLAGS = {0x2: "CHEAT", 0x4: "DEPRECATED", 0x100: "DUMPTODISK", 0x800: "READONLY"
          0x40000000: "KCD_LOCKED"}
 
 
+def groups():
+    """The CVarGroups, minus comment lines from the .cfg files (like "--Rain") that the extraction kept as cvars."""
+    out = json.loads(cfg_audit.GROUPS.read_text())
+    for g in out.values():
+        g["cvars"] = {k: v for k, v in g["cvars"].items() if not k.startswith(("--", ";"))}
+    return out
+
+
 def main():
     cvars = []
     for r in cfg_audit.load_registry().values():
@@ -30,7 +38,7 @@ def main():
     out = {
         "build": "WHGame.dll 1.9.8 (Steam)",
         "cvars": cvars,
-        "groups": json.loads(cfg_audit.GROUPS.read_text()),
+        "groups": groups(),
         "menu": cfg_audit.MENU,
         "menuGroups": sorted(cfg_audit.MENU_GROUPS),
         "dead": cfg_audit.DEAD,
