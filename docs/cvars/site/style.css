@@ -177,7 +177,9 @@ th { font-size: 13px; color: var(--muted); font-weight: 700; }
 .db-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 12px 0 4px; }
 .db-controls > * { min-width: 0; }
 .db-controls input[type="search"] { flex: 3 1 260px; }
-.db-controls select { flex: 1 1 200px; }
+.db-controls > select { flex: 1 1 200px; }
+.db-controls > .field { flex: 0 1 200px; }
+.db-controls > button, .db-controls > .button { height: 40px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
 .chip {
   font: 14px var(--sans);
