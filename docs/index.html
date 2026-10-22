@@ -18,6 +18,7 @@
   header.site .logo { width: min(560px, 88vw); }
   .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 22px 0 8px; }
   .actions .button { font-size: 15px; padding: 11px 18px; }
+  .launch code { overflow-wrap: anywhere; }
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 16px; }
 </style>
 </head>
@@ -50,13 +51,41 @@
     <div class="panel">
       <h2>Requirements</h2>
       <ul>
-        <li>NVIDIA RTX graphics card (RTX 20 series or newer), recent driver.</li>
+        <li>NVIDIA RTX graphics card (RTX 20 series or newer), recent driver. AMD and Intel cards: FSR or XeSS
+          through <a href="#optiscaler">OptiScaler</a>.</li>
+        <li>Windows, or Linux with Steam's <a href="#linux">Proton</a>.</li>
         <li>Kingdom Come: Deliverance, Steam version 1.9.8. Other versions are untested; the mod warns you if it
           doesn't recognise the game.</li>
       </ul>
       <div class="note"><b>Early version.</b> DLAA (100%) is the most reliable mode. Below 100% some effects can still
         look wrong. Please <a href="https://github.com/eonflux7/kcd1-clarity/issues">report</a> what you see, with a
         screenshot and <code>kcd_clarity.log</code>.</div>
+    </div>
+  </div>
+  <div class="cards">
+    <div class="panel" id="optiscaler">
+      <h2>AMD &amp; Intel GPUs</h2>
+      <p><a href="https://github.com/optiscaler/OptiScaler">OptiScaler</a> can run FSR or XeSS in place of DLSS.</p>
+      <ol>
+        <li>Install the mod as above.</li>
+        <li>Copy <code>OptiScaler.dll</code> into <code>Bin\Win64</code> renamed to <b><code>winmm.dll</code></b> (or
+          <code>version.dll</code>), plus <code>OptiScaler.ini</code>. Not <code>dinput8.dll</code>: that's this
+          mod.</li>
+        <li>In game, choose <b>DLSS</b> in F8, then press <b>Insert</b> for OptiScaler's menu and pick the
+          upscaler.</li>
+      </ol>
+      <p class="small muted">Untested so far. Reports welcome.</p>
+    </div>
+    <div class="panel launch" id="linux">
+      <h2>Linux (Proton)</h2>
+      <p>Install the files as on Windows, then set the game's Steam launch options:</p>
+      <ul>
+        <li>NVIDIA: <code>WINEDLLOVERRIDES="dinput8=n,b" PROTON_ENABLE_NVAPI=1 %command%</code></li>
+        <li>AMD / Intel, with OptiScaler as <code>winmm.dll</code>:
+          <code>WINEDLLOVERRIDES="dinput8,winmm=n,b" %command%</code></li>
+      </ul>
+      <p class="small muted">Without the override Wine uses its own <code>dinput8.dll</code> and the mod doesn't
+        load. Untested so far. Reports welcome.</p>
     </div>
   </div>
   <div class="panel">

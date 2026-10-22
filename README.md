@@ -19,14 +19,17 @@ Unofficial mod, not affiliated with Warhorse Studios or NVIDIA. Uses NVIDIA DLSS
 **Website:** [eonflux7.github.io/kcd1-clarity](https://eonflux7.github.io/kcd1-clarity/) ·
 [Config guide & cvar database](https://eonflux7.github.io/kcd1-clarity/cvars/)
 
-**Players:** [Requirements](#requirements) · [Install](#install) · [Use](#use) · [Troubleshooting](#troubleshooting)
+**Players:** [Requirements](#requirements) · [Install](#install) · [AMD / Intel](#amd-and-intel-gpus-optiscaler) · [Linux](#linux-proton) · [Use](#use)
+· [Troubleshooting](#troubleshooting)
 · [Config files & console variables](#config-files-and-console-variables)
 
 **Developers:** [Building](#building-from-source) · [How it works](#how-it-works)
 
 ## Requirements
 
-- An **NVIDIA RTX** graphics card (RTX 20 series or newer) with a recent driver.
+- An **NVIDIA RTX** graphics card (RTX 20 series or newer) with a recent driver. AMD and Intel cards can use
+  FSR or XeSS through [OptiScaler](#amd-and-intel-gpus-optiscaler) instead.
+- Windows, or Linux with Steam's Proton ([Linux](#linux-proton)).
 - Kingdom Come: Deliverance, **Steam version 1.9.8**. Other versions (GOG, older patches) are
   untested. The mod's menu warns you if it doesn't recognise your game version.
 - Not tested together with ReShade, ENB or other graphics injectors.
@@ -46,6 +49,41 @@ ASI plugins, other DLSS mods) can't be installed at the same time. Copying one o
 
 **Uninstall:** delete `dinput8.dll` and `nvngx_dlss.dll` from `Bin\Win64`. You can also delete `kcd_clarity.ini` and
 `kcd_clarity.log` there.
+
+## AMD and Intel GPUs (OptiScaler)
+
+> **Untested.** It should work, since OptiScaler implements the NGX calls the mod makes, but nobody has confirmed
+> it yet. Reports are welcome.
+
+The mod talks to DLSS through NVIDIA's NGX interface. [OptiScaler](https://github.com/optiscaler/OptiScaler)
+intercepts NGX and can run FSR or XeSS instead, so the mod works on AMD and Intel cards with it.
+
+1. Install the mod as above.
+2. From an OptiScaler release, copy `OptiScaler.dll` into `Bin\Win64` and **rename it to `winmm.dll`**. Also copy
+   `OptiScaler.ini`. Don't use `dinput8.dll`, which is this mod's name. `version.dll` works too. If you use OptiScaler's
+   setup script, pick one of those two names.
+3. Start the game. The F8 menu shows "OptiScaler *version* (winmm.dll)" when it's loaded. Choose DLSS in F8 as usual,
+   then press **Insert** for OptiScaler's menu and pick the upscaler (FSR, XeSS). *Model preset* applies only to
+   DLSS.
+
+If F8 says the upscaler is not available, check `OptiScaler.log` and follow OptiScaler's own guide for your GPU
+(GPU spoofing, fakenvapi). On NVIDIA cards OptiScaler isn't needed. If it's installed anyway, keep
+`nvngx_dlss.dll` so it can still use DLSS.
+
+## Linux (Proton)
+
+> **Untested.** It runs as an ordinary Windows mod under Proton, but nobody has confirmed it yet. Reports are
+> welcome.
+
+Install the DLLs as on Windows. Then, in Steam, right-click the game > *Properties* > *Launch options*:
+
+- **NVIDIA:** `WINEDLLOVERRIDES="dinput8=n,b" PROTON_ENABLE_NVAPI=1 %command%`. Wine prefers its own
+  `dinput8.dll`, and the override makes it load the mod's. `PROTON_ENABLE_NVAPI=1` turns on DLSS support in Proton
+  (it needs a recent Proton and NVIDIA driver).
+- **AMD / Intel** (with OptiScaler installed as `winmm.dll`, see above): `WINEDLLOVERRIDES="dinput8,winmm=n,b" %command%`.
+
+If `kcd_clarity.log` doesn't appear in `Bin/Win64`, the override isn't in effect. The log says "running under Wine"
+when the mod has loaded under Proton.
 
 ## Use
 
@@ -73,7 +111,8 @@ in decimal (F8 = 119). Leave the `[debug]` section at its defaults.
 |---|---|
 | F8 does nothing | the two DLLs must be in `Bin\Win64`, not the game's main folder. If `kcd_clarity.log` doesn't appear there after starting the game, the mod isn't loading; check for another mod's `dinput8.dll` |
 | F8 menu: "Set Anti-aliasing to SMAA 2TX" | change it in *Options > Video* |
-| F8 menu: "DLSS is not available" | needs an RTX card, an up-to-date NVIDIA driver, and `nvngx_dlss.dll` next to `dinput8.dll` |
+| F8 menu: "DLSS is not available" | needs an RTX card, an up-to-date NVIDIA driver, and `nvngx_dlss.dll` next to `dinput8.dll`. On AMD/Intel, install [OptiScaler](#amd-and-intel-gpus-optiscaler). On Linux, see the [launch options](#linux-proton) |
+| Linux: F8 does nothing | the `WINEDLLOVERRIDES` launch option is missing; see [Linux](#linux-proton) |
 | F8 menu: "engine functions not found" or "Untested game version" | your game version differs from the one the mod supports, usually after a game update. Check for a newer mod release |
 | something looks wrong below 100% | try DLAA. If it's fine there, it's a bug in the lower-resolution path; please report it |
 

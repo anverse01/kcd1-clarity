@@ -366,8 +366,20 @@ static void draw_menu_window() {
         ImGui::TextColored(kBad, "%d engine functions not found: mod inactive (unsupported game version?)", ss.missing);
     else if (!ss.known_build)
         ImGui::TextColored(kWarn, "Untested game version: expect problems");
-    if (d.init_tried && !d.available)
-        ImGui::TextColored(kBad, "DLSS is not available (needs an NVIDIA RTX GPU and nvngx_dlss.dll)");
+    if (d.init_tried && !d.available) {
+        if (*d.optiscaler_module)
+            ImGui::TextColored(kBad, "Upscaler not available through OptiScaler: check OptiScaler.log");
+        else if (!state().wine_version.empty())
+            ImGui::TextColored(kBad, "DLSS is not available (NVIDIA: launch with PROTON_ENABLE_NVAPI=1; "
+                                     "AMD/Intel: install OptiScaler)");
+        else
+            ImGui::TextColored(kBad, "DLSS is not available (needs an NVIDIA RTX GPU and nvngx_dlss.dll, "
+                                     "or OptiScaler on AMD/Intel)");
+    }
+    if (*d.optiscaler_module)
+        ImGui::TextDisabled("OptiScaler %s (%s) picks the upscaler: Insert opens its menu. Model preset is "
+                            "DLSS only.",
+                            d.optiscaler_version, d.optiscaler_module);
     if (snap.valid && snap.aa_mode_active != 3)
         ImGui::TextColored(kWarn, "Set Anti-aliasing to SMAA 2TX in the game's video options; DLSS replaces it");
     if (taa_dlss::settings().mode == taa_dlss::Mode::Dlss) {
@@ -414,6 +426,9 @@ static void draw_dlss_section() {
                 !d.init_tried ? "not initialised" : d.available ? "DLSS available" : "DLSS NOT available",
                 d.feature_created ? "created" : "none", d.create_result, d.last_eval_result,
                 (unsigned long long)d.evaluations);
+    ImGui::TextDisabled("OptiScaler: %s %s; Wine: %s", *d.optiscaler_module ? d.optiscaler_module : "none",
+                        d.optiscaler_version,
+                        state().wine_version.empty() ? "no" : state().wine_version.c_str());
     if (st.last_ok)
         ImGui::TextColored(kGood, "DLSS %ux%u -> %ux%u, jitter (%+.3f, %+.3f) px", st.render_width, st.render_height,
                            st.target_width, st.target_height, st.jitter_x, st.jitter_y);

@@ -10,6 +10,8 @@ Please report what you see, with a screenshot and kcd_clarity.log.
 Requirements
 ------------
 - NVIDIA RTX graphics card (RTX 20 series or newer) with a recent driver.
+  AMD and Intel cards: see "AMD / Intel (OptiScaler)" below.
+- Windows, or Linux with Steam's Proton (see "Linux" below).
 - Kingdom Come: Deliverance (the first game), Steam version 1.9.8. Other versions
   (GOG, older patches) are untested; the mod tells you if it doesn't recognise the game.
 
@@ -21,6 +23,20 @@ Install
 4. Press F8 in game, select DLSS and pick a quality level.
 
 Your choices are saved in Bin\Win64\kcd_clarity.ini.
+
+AMD / Intel (OptiScaler) - untested
+-----------------------------------
+OptiScaler (github.com/optiscaler/OptiScaler) can run FSR or XeSS in place of DLSS.
+Copy OptiScaler.dll into Bin\Win64 renamed to winmm.dll (or version.dll), plus
+OptiScaler.ini. Never use the name dinput8.dll, which is this mod's. In game, pick
+DLSS in F8, then press Insert for OptiScaler's menu to choose the upscaler.
+
+Linux (Steam Proton) - untested
+-------------------------------
+Install as above, then set the game's Steam launch options:
+  NVIDIA:      WINEDLLOVERRIDES="dinput8=n,b" PROTON_ENABLE_NVAPI=1 %command%
+  AMD/Intel:   WINEDLLOVERRIDES="dinput8,winmm=n,b" %command%   (with OptiScaler as winmm.dll)
+Without the override Wine uses its own dinput8.dll and the mod doesn't load.
 
 Conflicts
 ---------

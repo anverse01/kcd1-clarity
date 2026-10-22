@@ -48,11 +48,21 @@ static bool is_game_process() {
     return _wcsicmp(name.c_str(), L"KingdomCome.exe") == 0;
 }
 
+// Wine (and so Proton) exports wine_get_version from its ntdll; Windows doesn't.
+static std::string wine_version() {
+    using Fn = const char*(__cdecl*)();
+    auto fn = reinterpret_cast<Fn>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "wine_get_version"));
+    return fn ? fn() : "";
+}
+
 static DWORD WINAPI init_thread(LPVOID) {
     std::wstring dir = self_dir();
     g_state.mod_dir = dir;
     log_open(dir + L"kcd_clarity.log");
     logf("kcd-clarity %s, pid %lu", KC_VERSION, GetCurrentProcessId());
+    g_state.wine_version = wine_version();
+    if (!g_state.wine_version.empty())
+        logf("running under Wine %s (Proton)", g_state.wine_version.c_str());
     config_load(dir + L"kcd_clarity.ini");
     taa_dlss::settings().mode = static_cast<taa_dlss::Mode>(config().mode);
     taa_dlss::settings().skip_ngx = config().skip_ngx;
