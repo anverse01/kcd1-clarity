@@ -21,6 +21,7 @@ if exist "%STAGE%" rmdir /s /q "%STAGE%"
 mkdir "%STAGE%\kcd_clarity_licenses" || exit /b 1
 copy /y "%ROOT%build\dinput8.dll" "%STAGE%\" >nul || exit /b 1
 copy /y "%ROOT%build\ngx\rel\nvngx_dlss.dll" "%STAGE%\" >nul || exit /b 1
+copy /y "%ROOT%release\README.txt" "%STAGE%\kcd_clarity_readme.txt" >nul || exit /b 1
 set "LIC=%STAGE%\kcd_clarity_licenses"
 copy /y "%ROOT%LICENSE" "%LIC%\kcd-clarity.txt" >nul || exit /b 1
 copy /y "%ROOT%build\_deps\imgui-src\LICENSE.txt" "%LIC%\dear-imgui.txt" >nul || exit /b 1

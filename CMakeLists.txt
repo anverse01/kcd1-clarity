@@ -1,7 +1,7 @@
 # KCD Clarity: DLSS for Kingdom Come: Deliverance. Built on Windows with MSVC (build.cmd).
 # Output is dinput8.dll: a proxy for System32\dinput8.dll that WHGame.dll loads from Bin\Win64.
 cmake_minimum_required(VERSION 3.24)
-project(kcd_clarity VERSION 0.0.1 LANGUAGES C CXX ASM_MASM)
+project(kcd_clarity VERSION 0.1.0 LANGUAGES C CXX ASM_MASM)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,9 +13,11 @@ include(FetchContent)
 # SOURCE_SUBDIR points at a missing dir so FetchContent only downloads; targets are defined below.
 FetchContent_Declare(imgui
     URL https://github.com/ocornut/imgui/archive/refs/tags/v1.91.5.tar.gz
+    URL_HASH SHA256=2aa2d169c569368439e5d5667e0796d09ca5cc6432965ce082e516937d7db254
     SOURCE_SUBDIR _no_cmake)
 FetchContent_Declare(minhook
     URL https://github.com/TsudaKageyu/minhook/archive/refs/tags/v1.3.3.tar.gz
+    URL_HASH SHA256=5bec16358ec9086d4593124bf558635e89135abea2c76e5761ecaf09f4546b19
     SOURCE_SUBDIR _no_cmake)
 FetchContent_MakeAvailable(imgui minhook)
 
@@ -23,23 +25,16 @@ FetchContent_MakeAvailable(imgui minhook)
 # not redistributed on its own (LICENSE.txt in the SDK); nvngx_dlss.dll is deployed next to the game.
 set(DLSS_SDK_TAG v310.9.1)
 set(DLSS_SDK_DIR ${CMAKE_BINARY_DIR}/dlss-sdk-${DLSS_SDK_TAG})
-set(DLSS_SDK_FILES
-    LICENSE.txt
-    lib/Windows_x86_64/x64/nvsdk_ngx_s.lib
-    lib/Windows_x86_64/rel/nvngx_dlss.dll
-    lib/Windows_x86_64/dev/nvngx_dlss.dll)
-foreach(h nvsdk_ngx nvsdk_ngx_defs nvsdk_ngx_defs_dlssd nvsdk_ngx_defs_dlssg nvsdk_ngx_defs_vk nvsdk_ngx_helpers
-          nvsdk_ngx_helpers_cuda nvsdk_ngx_helpers_d3d nvsdk_ngx_helpers_dlssd nvsdk_ngx_helpers_dlssd_cuda
-          nvsdk_ngx_helpers_dlssd_d3d nvsdk_ngx_helpers_dlssd_vk nvsdk_ngx_helpers_dlssg nvsdk_ngx_helpers_dlssg_d3d
-          nvsdk_ngx_helpers_dlssg_vk nvsdk_ngx_helpers_vk nvsdk_ngx_loader nvsdk_ngx_params nvsdk_ngx_params_dlssd
-          nvsdk_ngx_params_dlssg nvsdk_ngx_standalone_common nvsdk_ngx_standalone_cuda nvsdk_ngx_vk)
-    list(APPEND DLSS_SDK_FILES include/${h}.h)
-endforeach()
-foreach(f ${DLSS_SDK_FILES})
+# cmake/dlss-sdk-<tag>.sha256 lists every file we take from the SDK and its hash ("<sha256>  <path>" lines).
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dlss-sdk-${DLSS_SDK_TAG}.sha256 DLSS_SDK_MANIFEST)
+foreach(line ${DLSS_SDK_MANIFEST})
+    string(REGEX MATCH "^([0-9a-f]+)  (.+)$" _ "${line}")
+    set(hash ${CMAKE_MATCH_1})
+    set(f ${CMAKE_MATCH_2})
     if(NOT EXISTS ${DLSS_SDK_DIR}/${f})
         message(STATUS "DLSS SDK: downloading ${f}")
         file(DOWNLOAD https://raw.githubusercontent.com/NVIDIA/DLSS/${DLSS_SDK_TAG}/${f} ${DLSS_SDK_DIR}/${f}.part
-             STATUS st TLS_VERIFY ON)
+             STATUS st TLS_VERIFY ON EXPECTED_HASH SHA256=${hash})
         list(GET st 0 code)
         if(NOT code EQUAL 0)
             file(REMOVE ${DLSS_SDK_DIR}/${f}.part)

@@ -299,29 +299,13 @@ static void draw_fps_corner() {
 
 static const ImVec4 kGood(0.4f, 1, 0.4f, 1), kWarn(1, 0.8f, 0.3f, 1), kBad(1, 0.4f, 0.3f, 1);
 
-static void draw_menu_window() {
-    ImGui::SetNextWindowPos(ImVec2(40, 40), ImGuiCond_FirstUseEver);
-    ImGui::Begin("KCD Clarity", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
-    const sym::Status& ss = sym::status();
-    if (ss.missing)
-        ImGui::TextColored(kBad, "%d engine symbols missing: inactive (see kcd_clarity.log)", ss.missing);
-    else
-        ImGui::TextColored(kGood, "Engine symbols resolved (%d)", ss.resolved);
-    ImGui::TextDisabled("Early development build: no upscaling yet. F3 opens the probe/debug window.");
-    ImGui::End();
-}
-
-static void draw_dlss_section() {
+static void draw_settings() {
     taa_dlss::Settings& s = taa_dlss::settings();
-    const taa_dlss::Status& st = taa_dlss::status();
-    const dlss::Status& d = dlss::status();
-    const d3d11::Status& h = d3d11::status();
-    const game::Snapshot& snap = game::snapshot();
 
     int mode = static_cast<int>(s.mode);
     bool changed = ImGui::RadioButton("Engine TAA", &mode, 0);
     ImGui::SameLine();
-    changed |= ImGui::RadioButton("DLAA", &mode, 1);
+    changed |= ImGui::RadioButton("DLSS", &mode, 1);
     if (changed) {
         s.mode = static_cast<taa_dlss::Mode>(mode);
         config().mode = mode;
@@ -334,9 +318,18 @@ static void draw_dlss_section() {
         s.render_scale = render_scale_for(config().dlss_quality);
         config_save();
     }
-    ImGui::SameLine();
-    ImGui::TextDisabled("scale %.3f, engine downscale (%.3f, %.3f)", s.render_scale, snap.downscale_cur.x,
-                        snap.downscale_cur.y);
+    // NGX preset values: 0 = default, 10-13 = J-M (1-9 are removed or reserved in SDK 310)
+    static const int kPresets[] = {0, 10, 11, 12, 13};
+    int preset = 0;
+    for (int i = 0; i < 5; ++i)
+        if (kPresets[i] == config().dlss_preset)
+            preset = i;
+    ImGui::SetNextItemWidth(260);
+    if (ImGui::Combo("Model preset", &preset, "Default\0J\0K\0L\0M\0")) {
+        config().dlss_preset = kPresets[preset];
+        config_save();
+        dlss::request_recreate();
+    }
     if (ImGui::Checkbox("Texture mip bias", &s.mip_bias)) {
         config().mip_bias = s.mip_bias;
         config_save();
@@ -347,9 +340,8 @@ static void draw_dlss_section() {
         config().mip_bias_offset = s.mip_bias_offset;
         config_save();
     }
-    ImGui::SameLine();
-    ImGui::TextDisabled("bias %+.2f (log2 scale %+.2f), %u biased samplers", mip_bias::bias(), log2f(s.render_scale),
-                        mip_bias::status().clones);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Negative = sharper textures, more shimmer");
     if (ImGui::Checkbox("Coarser shadow noise below 50%", &s.coarse_shadow_noise)) {
         config().coarse_shadow_noise = s.coarse_shadow_noise;
         config_save();
@@ -359,7 +351,50 @@ static void draw_dlss_section() {
         config().temporal_shadow_noise = s.temporal_shadow_noise;
         config_save();
     }
-    ImGui::SameLine();
+    if (ImGui::Checkbox("FPS counter", &config().show_fps))
+        config_save();
+}
+
+static void draw_menu_window() {
+    ImGui::SetNextWindowPos(ImVec2(40, 40), ImGuiCond_FirstUseEver);
+    ImGui::Begin("KCD Clarity " KC_VERSION, nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+    const sym::Status& ss = sym::status();
+    const taa_dlss::Status& st = taa_dlss::status();
+    const dlss::Status& d = dlss::status();
+    const game::Snapshot& snap = game::snapshot();
+    if (ss.missing)
+        ImGui::TextColored(kBad, "%d engine functions not found: mod inactive (unsupported game version?)", ss.missing);
+    else if (!ss.known_build)
+        ImGui::TextColored(kWarn, "Untested game version: expect problems");
+    if (d.init_tried && !d.available)
+        ImGui::TextColored(kBad, "DLSS is not available (needs an NVIDIA RTX GPU and nvngx_dlss.dll)");
+    if (snap.valid && snap.aa_mode_active != 3)
+        ImGui::TextColored(kWarn, "Set Anti-aliasing to SMAA 2TX in the game's video options; DLSS replaces it");
+    if (taa_dlss::settings().mode == taa_dlss::Mode::Dlss) {
+        if (st.last_ok)
+            ImGui::TextColored(kGood, "DLSS %ux%u -> %ux%u", st.render_width, st.render_height, st.target_width,
+                               st.target_height);
+        else if (*st.last_error)
+            ImGui::TextColored(kBad, "DLSS off: %s", st.last_error);
+    }
+    draw_settings();
+    ImGui::Separator();
+    ImGui::TextDisabled("Uses NVIDIA DLSS. Unofficial; not affiliated with NVIDIA or Warhorse Studios.");
+    ImGui::TextDisabled("Settings: kcd_clarity.ini. F3: debug window.");
+    ImGui::End();
+}
+
+static void draw_dlss_section() {
+    taa_dlss::Settings& s = taa_dlss::settings();
+    const taa_dlss::Status& st = taa_dlss::status();
+    const dlss::Status& d = dlss::status();
+    const d3d11::Status& h = d3d11::status();
+    const game::Snapshot& snap = game::snapshot();
+
+    ImGui::TextDisabled("render scale %.3f, engine downscale (%.3f, %.3f); mip bias %+.2f (log2 scale %+.2f), %u "
+                        "biased samplers",
+                        s.render_scale, snap.downscale_cur.x, snap.downscale_cur.y, mip_bias::bias(),
+                        log2f(s.render_scale), mip_bias::status().clones);
     ImGui::TextDisabled("noise texture %s; motion vectors %s", shadow_noise::found() ? "found" : "not found",
                         velocity_format::promoted() ? "16-bit" : "8-bit (velocity16 off or restart needed)");
     ImGui::Checkbox("Drop occluded object velocities", &velocity_mask::status().enabled);
@@ -426,11 +461,6 @@ static void draw_dlss_section() {
         config().force_halton = s.force_halton;
         config().state_swap = s.state_swap;
         config_save();
-    }
-    ImGui::SetNextItemWidth(160);
-    if (ImGui::SliderInt("DLSS preset (0 = default, 10-13 = J-M)", &config().dlss_preset, 0, 13)) {
-        config_save();
-        dlss::request_recreate();
     }
 }
 
