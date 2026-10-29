@@ -20,6 +20,7 @@
 #include "renderer/taa_dlss.h"
 #include "renderer/velocity_format.h"
 #include "renderer/velocity_mask.h"
+#include "ui/overlay.h"
 
 namespace kc::d3d11 {
 
@@ -49,6 +50,7 @@ using DrawInstancedFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, UIN
 using OMSetTargetsAndUavsFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, ID3D11RenderTargetView* const*,
                                                         ID3D11DepthStencilView*, UINT, UINT,
                                                         ID3D11UnorderedAccessView* const*, const UINT*);
+using CopyResourceFn = void(STDMETHODCALLTYPE*)(ID3D11DeviceContext*, ID3D11Resource*, ID3D11Resource*);
 
 // Vtable slots (d3d11.h declaration order).
 constexpr int kCreateTexture2DSlot = 5;  // ID3D11Device
@@ -68,6 +70,7 @@ constexpr int kOMSetTargetsAndUavsSlot = 34;
 constexpr int kDispatchSlot = 41;
 constexpr int kOMSetRenderTargetsSlot = 33;
 constexpr int kCSSetShaderSlot = 69;
+constexpr int kCopyResourceSlot = 47;
 
 static CreatePixelShaderFn o_create_pixel_shader;
 static PSSetShaderFn o_ps_set_shader;
@@ -88,6 +91,13 @@ static DrawIndexedFn o_draw_indexed;
 static DrawIndexedInstancedFn o_draw_indexed_instanced;
 static DrawInstancedFn o_draw_instanced;
 static OMSetTargetsAndUavsFn o_om_set_targets_and_uavs;
+static CopyResourceFn o_copy_resource;
+
+static void STDMETHODCALLTYPE hk_copy_resource(ID3D11DeviceContext* ctx, ID3D11Resource* destination,
+                                               ID3D11Resource* source) {
+    overlay::before_copy(ctx, destination, source);
+    o_copy_resource(ctx, destination, source);
+}
 
 static Status g_status;
 static std::mutex g_mutex;  // guards g_taa (written on shader-creating threads, read on the render thread)
@@ -499,6 +509,9 @@ bool install() {
                                   reinterpret_cast<void**>(&o_draw_instanced));
     MH_STATUS s18 = MH_CreateHook(cvt[kOMSetTargetsAndUavsSlot], &hk_om_set_targets_and_uavs,
                                   reinterpret_cast<void**>(&o_om_set_targets_and_uavs));
+    MH_STATUS s19 = MH_CreateHook(cvt[kCopyResourceSlot], &hk_copy_resource,
+                                  reinterpret_cast<void**>(&o_copy_resource));
+    logf("d3d11: CopyResource bridge1 hook %s", MH_StatusToString(s19));
     MH_STATUS s4 = MH_EnableHook(MH_ALL_HOOKS);
     ctx->Release();
     device->Release();
@@ -514,7 +527,7 @@ bool install() {
     g_status.installed = s1 == MH_OK && s2 == MH_OK && s3 == MH_OK && s4 == MH_OK && s5 == MH_OK && s6 == MH_OK &&
                          s7 == MH_OK && s8 == MH_OK && s9 == MH_OK && s10 == MH_OK && s11 == MH_OK && s12 == MH_OK &&
                          s13 == MH_OK && s14 == MH_OK && s15 == MH_OK && s16 == MH_OK && s17 == MH_OK &&
-                         s18 == MH_OK;
+                         s18 == MH_OK && s19 == MH_OK;
     return g_status.installed;
 }
 
