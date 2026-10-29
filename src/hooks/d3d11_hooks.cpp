@@ -20,6 +20,7 @@
 #include "renderer/taa_dlss.h"
 #include "renderer/velocity_format.h"
 #include "renderer/velocity_mask.h"
+#include "renderer/ui_depth.h"
 
 namespace kc::d3d11 {
 
@@ -171,6 +172,7 @@ static HRESULT STDMETHODCALLTYPE hk_create_pixel_shader(ID3D11Device* device, co
                                                         ID3D11ClassLinkage* linkage, ID3D11PixelShader** out) {
     HRESULT hr = o_create_pixel_shader(device, code, size, linkage, out);
     if (SUCCEEDED(hr) && out && *out && !t_inside) {
+        ui_depth::on_create_ps(code, size, *out);
         screen_size_fix::Shader f;
         if (screen_size_fix::reflect_ps(code, size, &f)) {
             f.shader = *out;
@@ -308,19 +310,29 @@ static void canary_before_draw(ID3D11DeviceContext* ctx) {
     t_inside = false;
 }
 
+static void ui_depth_before_draw(ID3D11DeviceContext* ctx) {
+    if (t_inside)
+        return;
+    ScopedInside inside;
+    ui_depth::before_draw(ctx, g_bound_ps);
+}
+
 static void STDMETHODCALLTYPE hk_draw_indexed(ID3D11DeviceContext* ctx, UINT count, UINT start, INT base) {
+    ui_depth_before_draw(ctx);
     canary_before_draw(ctx);
     o_draw_indexed(ctx, count, start, base);
 }
 
 static void STDMETHODCALLTYPE hk_draw_indexed_instanced(ID3D11DeviceContext* ctx, UINT count, UINT instances,
                                                         UINT start, INT base, UINT start_instance) {
+    ui_depth_before_draw(ctx);
     canary_before_draw(ctx);
     o_draw_indexed_instanced(ctx, count, instances, start, base, start_instance);
 }
 
 static void STDMETHODCALLTYPE hk_draw_instanced(ID3D11DeviceContext* ctx, UINT count, UINT instances, UINT start,
                                                 UINT start_instance) {
+    ui_depth_before_draw(ctx);
     canary_before_draw(ctx);
     o_draw_instanced(ctx, count, instances, start, start_instance);
 }
@@ -389,6 +401,7 @@ static void STDMETHODCALLTYPE hk_ps_set_samplers(ID3D11DeviceContext* ctx, UINT 
 }
 
 static void STDMETHODCALLTYPE hk_draw(ID3D11DeviceContext* ctx, UINT count, UINT start) {
+    ui_depth_before_draw(ctx);
     canary_before_draw(ctx);  // also the TAA draw's inputs (our DLSS path reads them too)
     if (g_bound_taa && !t_inside)
         canary::on_taa_draw();
